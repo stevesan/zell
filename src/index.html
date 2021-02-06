@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.15.1/dist/phaser-arcade-physics.min.js"></script>
+</head>
+
+<body>
+
+  <script>
+    var config = {
+      type: Phaser.AUTO,
+      width: 1280,
+      height: 720,
+      physics: {
+        default: 'arcade',
+        arcade: {
+          gravity: { x: 0, y: 0 },
+          debug: false,
+        }
+      },
+      scene: {
+        preload: preload,
+        create: create,
+        update: update
+      }
+    };
+
+    var game = new Phaser.Game(config);
+
+    function preload() {
+      this.load.setBaseURL('../assets');
+      this.load.image('cell', 'buzzsaw.png');
+      this.load.image('sugar', 'drop.png');
+      this.load.image('particles/blue', 'particles/blue.png');
+    }
+
+    class SugarEntity {
+      update(dt) {
+        // console.log(this.image.texture.key);
+      }
+
+      destroy() {
+        this.image.destroy();
+        this.image = null;
+      }
+    }
+
+    const MAX_CELL_SPEED = 300;
+
+    // Gross
+    let imageWasJustClicked = false;
+
+    let explosionEmitter = null;
+    let clickEmitter = null;
+
+    class CellEntity {
+      constructor() {
+        this.targetMode = 'pos';
+        this.targetX = 50;
+        this.targetY = 50;
+      }
+
+      goTowards(x, y, dt) {
+        let dx = x - this.image.x;
+        let dy = y - this.image.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= 0) return;
+
+        let easiness = 20;
+        let speed = MAX_CELL_SPEED * (1 - 1 / (dist / easiness + 1));
+        this.image.setVelocity(dx / dist * speed, dy / dist * speed);
+      }
+
+      update(dt) {
+        if (this.targetMode == 'pos') {
+          this.goTowards(this.targetX, this.targetY, dt);
+        }
+        else if (this.targetMode == 'ent') {
+          if (this.targetEnt == null || this.targetEnt.image == null) {
+            this.targetMode = 'none';
+          } else {
+            this.goTowards(this.targetEnt.image.x, this.targetEnt.image.y, dt);
+          }
+        }
+      }
+    }
+
+    function create() {
+      // this.add.image(config.width / 2, config.height / 2, 'sky');
+
+      this.entities = [];
+
+      var cellImage = this.physics.add.image(100, 100, 'cell');
+      cellImage.setCircle(32);
+      cellImage.setVelocity(50, 50);
+      cellImage.setBounce(1, 1);
+      cellImage.setCollideWorldBounds(true);
+
+      let cell = new CellEntity();
+      cell.image = cellImage;
+      this.entities.push(cell)
+
+      for (let i = 0; i < 5; i++) {
+        var sugarImage = this.physics.add.image(Math.random() * config.width, Math.random() * config.height, 'sugar').setInteractive();
+        sugarImage.setCircle(32);
+        sugarImage.setVelocity(50, -50);
+        sugarImage.setBounce(1, 1);
+        sugarImage.setCollideWorldBounds(true);
+        let sugar = new SugarEntity();
+        sugar.image = sugarImage;
+        this.entities.push(sugar);
+
+        sugarImage.on('pointerdown', function (pointer) {
+          this.setTint(0xff0000);
+          cell.targetMode = 'ent';
+          cell.targetEnt = sugar;
+          imageWasJustClicked = true;
+        });
+        sugarImage.on('pointerover', function (pointer) {
+          this.setTint(0x8888ff);
+        });
+        sugarImage.on('pointerout', function (pointer) {
+          this.clearTint();
+        });
+
+        this.physics.add.collider(sugarImage, cellImage, function (sugarImage, cellImage) {
+          explosionEmitter.explode(1000, sugarImage.x, sugarImage.y);
+          sugar.destroy();
+        });
+      }
+
+      var particles = this.add.particles('particles/blue');
+      particles.depth = 1;
+      var emitter = particles.createEmitter({
+        speed: 500,
+        lifespan: 1000,
+        scale: { start: 1, end: 0 },
+        blendMode: 'ADD'
+      });
+      emitter.stop();
+
+      explosionEmitter = emitter;
+
+      clickEmitter = particles.createEmitter({
+        speed: 200,
+        lifespan: 250,
+        scale: { start: 1, end: 0 },
+        blendMode: 'ADD'
+      });
+      clickEmitter.stop();
+
+      // Scene-wide click handler
+      this.input.on('pointerdown', function (pointer) {
+        // Kinda lame..
+        if (imageWasJustClicked) {
+          imageWasJustClicked = false;
+          return;
+        }
+        console.log(`${pointer.x} ${pointer.y}`);
+        cell.targetMode = 'pos';
+        cell.targetX = pointer.x;
+        cell.targetY = pointer.y;
+
+        clickEmitter.explode(30, pointer.x, pointer.y);
+      });
+
+      console.log(sugarImage, cellImage, explosionEmitter);
+    }
+
+    function update(time, deltaTime) {
+      for (let ent of this.entities) {
+        ent.update(deltaTime);
+      }
+    }
+  </script>
+
+</body>
+
+</html>
