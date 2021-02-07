@@ -31,7 +31,8 @@
     function preload() {
       this.load.setBaseURL('../assets');
       this.load.image('cell', 'buzzsaw.png');
-      this.load.image('sugar', 'drop.png');
+      this.load.image('softbg', 'softbg.jpg');
+      this.load.image('sugar', 'sugar.png');
       this.load.image('arrow', 'arrow.png');
       this.load.image('particles/blue', 'particles/blue.png');
     }
@@ -69,6 +70,14 @@
         this.gameObject.destroy();
         this.gameObject = null;
       }
+
+      onClick() {
+        if (selectedCellEntity) {
+          selectedCellEntity.targetMode = 'ent';
+          selectedCellEntity.targetEnt = this;
+        }
+      }
+
     }
 
     const MAX_CELL_SPEED = 300;
@@ -80,6 +89,7 @@
     let clickEmitter = null;
 
     let pointerObject = null;
+    let selectedCellEntity = null;
 
     class CellEntity extends Entity {
       constructor(go) {
@@ -105,18 +115,17 @@
           this.goTowards(this.targetX, this.targetY, dt);
         }
         else if (this.targetMode == 'ent') {
-          if (this.targetEnt == null || this.targetEnt.image == null) {
+          if (this.targetEnt == null || this.targetEnt.gameObject == null) {
             this.targetMode = 'none';
           } else {
-            this.goTowards(this.targetEnt.image.x, this.targetEnt.image.y, dt);
+            this.goTowards(this.targetEnt.gameObject.x, this.targetEnt.gameObject.y, dt);
           }
         }
       }
     }
 
     function create() {
-      // this.add.image(config.width / 2, config.height / 2, 'sky');
-
+      this.add.image(config.width / 2, config.height / 2, 'softbg').depth = 0;
 
       this.entities = [];
 
@@ -127,6 +136,7 @@
       cellImage.setCollideWorldBounds(true);
 
       let cell = new CellEntity(cellImage);
+      selectedCellEntity = cell;
       this.entities.push(cell)
 
       for (let i = 0; i < 5; i++) {
@@ -137,19 +147,6 @@
         sugarImage.setCollideWorldBounds(true);
         let sugar = new SugarEntity(sugarImage);
         this.entities.push(sugar);
-
-        sugarImage.on('pointerdown', function (pointer) {
-          this.setTint(0xff0000);
-          cell.targetMode = 'ent';
-          cell.targetEnt = sugar;
-          imageWasJustClicked = true;
-        });
-        sugarImage.on('pointerover', function (pointer) {
-          this.setTint(0x8888ff);
-        });
-        sugarImage.on('pointerout', function (pointer) {
-          this.clearTint();
-        });
 
         this.physics.add.overlap(sugarImage, cellImage, function (sugarImage, cellImage) {
           explosionEmitter.explode(1000, sugarImage.x, sugarImage.y);
@@ -225,21 +222,22 @@
         if (!this.input.mouse.locked) {
           return;
         }
-        // Kinda lame..
-        if (imageWasJustClicked) {
-          imageWasJustClicked = false;
-          return;
-        }
-        cell.targetMode = 'pos';
-        cell.targetX = pointerObject.x;
-        cell.targetY = pointerObject.y;
 
         clickEmitter.explode(30, pointerObject.x, pointerObject.y);
 
+        let clickedAny = false;
         for (let body of getObjectsUnderPointer()) {
           if (body.gameObject.entity) {
             body.gameObject.entity.onClick();
+            clickedAny = true;
           }
+        }
+
+        if (!clickedAny) {
+          // Clicked bg
+          cell.targetMode = 'pos';
+          cell.targetX = pointerObject.x;
+          cell.targetY = pointerObject.y;
         }
       });
     }
