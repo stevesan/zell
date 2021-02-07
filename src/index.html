@@ -30,9 +30,9 @@
 
     function preload() {
       this.load.setBaseURL('../assets');
-      this.load.image('cell', 'buzzsaw.png');
+      this.load.image('cell', 'cell.png');
       this.load.image('softbg', 'softbg.jpg');
-      this.load.image('sugar', 'sugar.png');
+      this.load.image('sugar', 'molecule.png');
       this.load.image('arrow', 'arrow.png');
       this.load.image('particles/blue', 'particles/blue.png');
     }
@@ -62,8 +62,10 @@
       constructor(go) {
         super(go);
       }
+
       update(dt) {
-        // console.log(this.image.texture.key);
+        if (!this.gameObject) return;
+        this.gameObject.angle += dt / 1000 * 180;
       }
 
       destroy() {
@@ -111,6 +113,8 @@
       }
 
       update(dt) {
+        if (!this.gameObject) return;
+
         if (this.targetMode == 'pos') {
           this.goTowards(this.targetX, this.targetY, dt);
         }
@@ -121,6 +125,8 @@
             this.goTowards(this.targetEnt.gameObject.x, this.targetEnt.gameObject.y, dt);
           }
         }
+
+        this.gameObject.angle += dt / 1000 * 180;
       }
     }
 
