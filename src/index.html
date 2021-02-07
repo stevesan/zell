@@ -220,6 +220,8 @@
       // Scene-wide click handler
       this.input.on('pointerdown', (pointer) => {
         if (!this.input.mouse.locked) {
+          pointerObject.x = pointer.x;
+          pointerObject.y = pointer.y;
           return;
         }
 
@@ -240,12 +242,17 @@
           cell.targetY = pointerObject.y;
         }
       });
+
+      this.pointerLockText = this.add.text(config.width * 0.2, config.height * 0.4, 'Click to play', { font: "48px Arial Black", fill: "#000" });
+      this.pointerLockText.setStroke('#fff', 8);
     }
 
     function update(time, deltaTime) {
       for (let ent of this.entities) {
         ent.update(deltaTime);
       }
+
+      this.pointerLockText.setVisible(!this.input.mouse.locked);
     }
   </script>
 
