@@ -35,6 +35,9 @@
       this.load.image('sugar', 'molecule.png');
       this.load.image('arrow', 'arrow.png');
       this.load.image('particles/blue', 'particles/blue.png');
+
+      this.load.audio('click', 'sounds/click.wav');
+      this.load.audio('powerup', 'sounds/powerup.wav');
     }
 
     class Entity {
@@ -99,6 +102,9 @@
         this.targetMode = 'pos';
         this.targetX = 50;
         this.targetY = 50;
+
+        this.prevVelX = 0;
+        this.prevVelY = 0;
       }
 
       goTowards(x, y, dt) {
@@ -109,7 +115,9 @@
 
         let easiness = 20;
         let speed = MAX_CELL_SPEED * (1 - 1 / (dist / easiness + 1));
-        this.gameObject.setVelocity(dx / dist * speed, dy / dist * speed);
+        this.prevVelX = dx / dist * speed;
+        this.prevVelY = dy / dist * speed;
+        this.gameObject.setVelocity(this.prevVelX, this.prevVelY);
       }
 
       update(dt) {
@@ -120,7 +128,11 @@
         }
         else if (this.targetMode == 'ent') {
           if (this.targetEnt == null || this.targetEnt.gameObject == null) {
-            this.targetMode = 'none';
+            // It's gone - just go a bit past it
+            this.targetMode = 'pos';
+            let pastTime = 0.1;
+            this.targetX = this.gameObject.x + this.prevVelX * pastTime;
+            this.targetY = this.gameObject.y + this.prevVelY * pastTime;
           } else {
             this.goTowards(this.targetEnt.gameObject.x, this.targetEnt.gameObject.y, dt);
           }
@@ -131,6 +143,9 @@
     }
 
     function create() {
+      this.clickAudio = this.sound.add('click', { volume: 0.1 });
+      this.powerupAudio = this.sound.add('powerup', { volume: 0.1 });
+
       this.add.image(config.width / 2, config.height / 2, 'softbg').depth = 0;
 
       this.entities = [];
@@ -154,9 +169,10 @@
         let sugar = new SugarEntity(sugarImage);
         this.entities.push(sugar);
 
-        this.physics.add.overlap(sugarImage, cellImage, function (sugarImage, cellImage) {
-          explosionEmitter.explode(1000, sugarImage.x, sugarImage.y);
+        this.physics.add.overlap(sugarImage, cellImage, (sugarImage, cellImage) => {
+          explosionEmitter.explode(100, sugarImage.x, sugarImage.y);
           sugar.destroy();
+          this.powerupAudio.play();
         });
       }
 
@@ -232,6 +248,7 @@
         }
 
         clickEmitter.explode(30, pointerObject.x, pointerObject.y);
+        this.clickAudio.play();
 
         let clickedAny = false;
         for (let body of getObjectsUnderPointer()) {
