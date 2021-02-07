@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.15.1/dist/phaser-arcade-physics.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.52.0/dist/phaser-arcade-physics.min.js"></script>
 </head>
 
 <body>
@@ -32,17 +32,42 @@
       this.load.setBaseURL('../assets');
       this.load.image('cell', 'buzzsaw.png');
       this.load.image('sugar', 'drop.png');
+      this.load.image('arrow', 'arrow.png');
       this.load.image('particles/blue', 'particles/blue.png');
     }
 
-    class SugarEntity {
+    class Entity {
+      constructor(gameObject) {
+        this.gameObject = gameObject;
+        gameObject.entity = this;
+      }
+
+      onClick() {
+        console.log('hi');
+      }
+
+      onPointerIn() {
+        if (!this.gameObject) return;
+        this.gameObject.setTint(0x88ff88);
+      }
+
+      onPointerOut() {
+        if (!this.gameObject) return;
+        this.gameObject.clearTint();
+      }
+    }
+
+    class SugarEntity extends Entity {
+      constructor(go) {
+        super(go);
+      }
       update(dt) {
         // console.log(this.image.texture.key);
       }
 
       destroy() {
-        this.image.destroy();
-        this.image = null;
+        this.gameObject.destroy();
+        this.gameObject = null;
       }
     }
 
@@ -54,22 +79,25 @@
     let explosionEmitter = null;
     let clickEmitter = null;
 
-    class CellEntity {
-      constructor() {
+    let pointerObject = null;
+
+    class CellEntity extends Entity {
+      constructor(go) {
+        super(go);
         this.targetMode = 'pos';
         this.targetX = 50;
         this.targetY = 50;
       }
 
       goTowards(x, y, dt) {
-        let dx = x - this.image.x;
-        let dy = y - this.image.y;
+        let dx = x - this.gameObject.x;
+        let dy = y - this.gameObject.y;
         let dist = Math.sqrt(dx * dx + dy * dy);
         if (dist <= 0) return;
 
         let easiness = 20;
         let speed = MAX_CELL_SPEED * (1 - 1 / (dist / easiness + 1));
-        this.image.setVelocity(dx / dist * speed, dy / dist * speed);
+        this.gameObject.setVelocity(dx / dist * speed, dy / dist * speed);
       }
 
       update(dt) {
@@ -89,6 +117,7 @@
     function create() {
       // this.add.image(config.width / 2, config.height / 2, 'sky');
 
+
       this.entities = [];
 
       var cellImage = this.physics.add.image(100, 100, 'cell');
@@ -97,18 +126,16 @@
       cellImage.setBounce(1, 1);
       cellImage.setCollideWorldBounds(true);
 
-      let cell = new CellEntity();
-      cell.image = cellImage;
+      let cell = new CellEntity(cellImage);
       this.entities.push(cell)
 
       for (let i = 0; i < 5; i++) {
-        var sugarImage = this.physics.add.image(Math.random() * config.width, Math.random() * config.height, 'sugar').setInteractive();
+        var sugarImage = this.physics.add.image(Math.random() * config.width, Math.random() * config.height, 'sugar');
         sugarImage.setCircle(32);
         sugarImage.setVelocity(50, -50);
         sugarImage.setBounce(1, 1);
         sugarImage.setCollideWorldBounds(true);
-        let sugar = new SugarEntity();
-        sugar.image = sugarImage;
+        let sugar = new SugarEntity(sugarImage);
         this.entities.push(sugar);
 
         sugarImage.on('pointerdown', function (pointer) {
@@ -124,7 +151,7 @@
           this.clearTint();
         });
 
-        this.physics.add.collider(sugarImage, cellImage, function (sugarImage, cellImage) {
+        this.physics.add.overlap(sugarImage, cellImage, function (sugarImage, cellImage) {
           explosionEmitter.explode(1000, sugarImage.x, sugarImage.y);
           sugar.destroy();
         });
@@ -150,22 +177,71 @@
       });
       clickEmitter.stop();
 
+      pointerObject = this.add.image(100, 100, 'arrow').setOrigin(0, 0);
+      game.canvas.addEventListener('mousedown', () => {
+        this.input.mouse.requestPointerLock();
+      });
+
+      let getObjectsUnderPointer = () => {
+        return this.physics.overlapRect(pointerObject.x, pointerObject.y, 1, 1);
+      };
+
+      let prevHoveredEnts = new Set();
+
+      this.input.on('pointermove', (pointer) => {
+        if (!this.input.mouse.locked) {
+          return;
+        }
+        let sprite = pointerObject;
+        sprite.x += pointer.movementX;
+        sprite.y += pointer.movementY;
+        sprite.x = Phaser.Math.Clamp(sprite.x, 0, game.renderer.width - 8);
+        sprite.y = Phaser.Math.Clamp(sprite.y, 0, game.renderer.height - 8);
+
+        let hoveredEnts = new Set();
+        for (let body of getObjectsUnderPointer()) {
+          if (body.gameObject.entity) {
+            hoveredEnts.add(body.gameObject.entity);
+          }
+        }
+
+        for (let ent of hoveredEnts) {
+          if (!prevHoveredEnts.has(ent)) {
+            ent.onPointerIn();
+          }
+        }
+
+        for (let ent of prevHoveredEnts) {
+          if (!hoveredEnts.has(ent)) {
+            ent.onPointerOut();
+          }
+        }
+
+        prevHoveredEnts = hoveredEnts;
+      });
+
       // Scene-wide click handler
-      this.input.on('pointerdown', function (pointer) {
+      this.input.on('pointerdown', (pointer) => {
+        if (!this.input.mouse.locked) {
+          return;
+        }
         // Kinda lame..
         if (imageWasJustClicked) {
           imageWasJustClicked = false;
           return;
         }
-        console.log(`${pointer.x} ${pointer.y}`);
         cell.targetMode = 'pos';
-        cell.targetX = pointer.x;
-        cell.targetY = pointer.y;
+        cell.targetX = pointerObject.x;
+        cell.targetY = pointerObject.y;
 
-        clickEmitter.explode(30, pointer.x, pointer.y);
+        clickEmitter.explode(30, pointerObject.x, pointerObject.y);
+
+        for (let body of getObjectsUnderPointer()) {
+          if (body.gameObject.entity) {
+            body.gameObject.entity.onClick();
+          }
+        }
       });
-
-      console.log(sugarImage, cellImage, explosionEmitter);
     }
 
     function update(time, deltaTime) {
