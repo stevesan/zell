@@ -38,6 +38,7 @@
 
       this.load.audio('click', 'sounds/click.wav');
       this.load.audio('powerup', 'sounds/powerup.wav');
+      this.load.audio('bgmusic', 'music/ftl-title-theme.mp3');
     }
 
     class Entity {
@@ -143,6 +144,8 @@
     }
 
     function create() {
+      this.sound.add('bgmusic', { loop: true, volume: 0.2 }).play();
+
       this.clickAudio = this.sound.add('click', { volume: 0.1 });
       this.powerupAudio = this.sound.add('powerup', { volume: 0.1 });
 
