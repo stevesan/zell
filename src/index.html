@@ -69,7 +69,6 @@
 
       update(dt) {
         if (!this.gameObject) return;
-        this.gameObject.angle += dt / 1000 * 180;
       }
 
       destroy() {
@@ -100,9 +99,7 @@
     class CellEntity extends Entity {
       constructor(go) {
         super(go);
-        this.targetMode = 'pos';
-        this.targetX = 50;
-        this.targetY = 50;
+        this.targetMode = 'none';
 
         this.prevVelX = 0;
         this.prevVelY = 0;
@@ -121,11 +118,11 @@
         this.gameObject.setVelocity(this.prevVelX, this.prevVelY);
       }
 
-      update(dt) {
+      update(dtMs) {
         if (!this.gameObject) return;
 
         if (this.targetMode == 'pos') {
-          this.goTowards(this.targetX, this.targetY, dt);
+          this.goTowards(this.targetX, this.targetY, dtMs);
         }
         else if (this.targetMode == 'ent') {
           if (this.targetEnt == null || this.targetEnt.gameObject == null) {
@@ -135,11 +132,11 @@
             this.targetX = this.gameObject.x + this.prevVelX * pastTime;
             this.targetY = this.gameObject.y + this.prevVelY * pastTime;
           } else {
-            this.goTowards(this.targetEnt.gameObject.x, this.targetEnt.gameObject.y, dt);
+            this.goTowards(this.targetEnt.gameObject.x, this.targetEnt.gameObject.y, dtMs);
           }
         }
 
-        this.gameObject.angle += dt / 1000 * 180;
+        this.gameObject.angle += dtMs / 1000 * 180;
       }
     }
 
@@ -153,9 +150,9 @@
 
       this.entities = [];
 
-      var cellImage = this.physics.add.image(100, 100, 'cell');
+      var cellImage = this.physics.add.image(config.width / 2, config.height / 2, 'cell');
       cellImage.setCircle(32);
-      cellImage.setVelocity(50, 50);
+      cellImage.setVelocity(1, 1);
       cellImage.setBounce(1, 1);
       cellImage.setCollideWorldBounds(true);
 
@@ -166,7 +163,8 @@
       for (let i = 0; i < 5; i++) {
         var sugarImage = this.physics.add.image(Math.random() * config.width, Math.random() * config.height, 'sugar');
         sugarImage.setCircle(32);
-        sugarImage.setVelocity(50, -50);
+        sugarImage.setVelocity((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50);
+        sugarImage.setAngularVelocity((Math.random() - 0.5) * 180);
         sugarImage.setBounce(1, 1);
         sugarImage.setCollideWorldBounds(true);
         let sugar = new SugarEntity(sugarImage);
@@ -269,8 +267,13 @@
         }
       });
 
-      this.pointerLockText = this.add.text(config.width * 0.2, config.height * 0.4, 'Click to play', { font: "48px Arial Black", fill: "#000" });
+      this.pointerLockText = this.add.text(
+        0, 0,
+        'Click to play',
+        { font: "48px Arial Black", fill: "#000", align: 'center' });
       this.pointerLockText.setStroke('#fff', 8);
+      this.pointerLockText.x = config.width / 2 - this.pointerLockText.width / 2;
+      this.pointerLockText.y = config.height * 0.3 - this.pointerLockText.height / 2;
     }
 
     function update(time, deltaTime) {
