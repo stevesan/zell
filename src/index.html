@@ -197,29 +197,15 @@
       });
       clickEmitter.stop();
 
-      pointerObject = this.add.image(100, 100, 'arrow').setOrigin(0, 0);
-      game.canvas.addEventListener('mousedown', () => {
-        this.input.mouse.requestPointerLock();
-      });
-
-      let getObjectsUnderPointer = () => {
-        return this.physics.overlapRect(pointerObject.x, pointerObject.y, 1, 1);
+      let getObjectsUnderPointer = (pointer) => {
+        return this.physics.overlapRect(pointer.x, pointer.y, 1, 1);
       };
 
       let prevHoveredEnts = new Set();
 
       this.input.on('pointermove', (pointer) => {
-        if (!this.input.mouse.locked) {
-          return;
-        }
-        let sprite = pointerObject;
-        sprite.x += pointer.movementX;
-        sprite.y += pointer.movementY;
-        sprite.x = Phaser.Math.Clamp(sprite.x, 0, game.renderer.width - 8);
-        sprite.y = Phaser.Math.Clamp(sprite.y, 0, game.renderer.height - 8);
-
         let hoveredEnts = new Set();
-        for (let body of getObjectsUnderPointer()) {
+        for (let body of getObjectsUnderPointer(pointer)) {
           if (body.gameObject.entity) {
             hoveredEnts.add(body.gameObject.entity);
           }
@@ -242,17 +228,11 @@
 
       // Scene-wide click handler
       this.input.on('pointerdown', (pointer) => {
-        if (!this.input.mouse.locked) {
-          pointerObject.x = pointer.x;
-          pointerObject.y = pointer.y;
-          return;
-        }
-
-        clickEmitter.explode(30, pointerObject.x, pointerObject.y);
+        clickEmitter.explode(30, pointer.x, pointer.y);
         this.clickAudio.play();
 
         let clickedAny = false;
-        for (let body of getObjectsUnderPointer()) {
+        for (let body of getObjectsUnderPointer(pointer)) {
           if (body.gameObject.entity) {
             body.gameObject.entity.onClick();
             clickedAny = true;
@@ -262,26 +242,16 @@
         if (!clickedAny) {
           // Clicked bg
           cell.targetMode = 'pos';
-          cell.targetX = pointerObject.x;
-          cell.targetY = pointerObject.y;
+          cell.targetX = pointer.x;
+          cell.targetY = pointer.y;
         }
       });
-
-      this.pointerLockText = this.add.text(
-        0, 0,
-        'Click to play',
-        { font: "48px Arial Black", fill: "#000", align: 'center' });
-      this.pointerLockText.setStroke('#fff', 8);
-      this.pointerLockText.x = config.width / 2 - this.pointerLockText.width / 2;
-      this.pointerLockText.y = config.height * 0.3 - this.pointerLockText.height / 2;
     }
 
     function update(time, deltaTime) {
       for (let ent of this.entities) {
         ent.update(deltaTime);
       }
-
-      this.pointerLockText.setVisible(!this.input.mouse.locked);
     }
   </script>
 
