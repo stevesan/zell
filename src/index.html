@@ -31,7 +31,7 @@
     function preload() {
       this.load.setBaseURL('../assets');
       this.load.image('cell', 'cell.png');
-      this.load.image('softbg', 'softbg.jpg');
+      this.load.image('fuzz', 'fuzz.png');
       this.load.image('sugar', 'molecule.png');
       this.load.image('arrow', 'arrow.png');
       this.load.image('particles/blue', 'particles/blue.png');
@@ -140,13 +140,39 @@
       }
     }
 
+    const worldWidth = 2000;
+    const worldHeight = 2000;
+
+    function createFuzz(scene) {
+      scene.fuzzes = [];
+      for (let i = 0; i < 100; i++) {
+        let x = worldWidth * Math.random();
+        let y = worldHeight * Math.random();
+        let image = scene.add.image(x, y, 'fuzz');
+        image.alpha = Math.random() * 0.8;
+        image.origX = x;
+        image.origY = y;
+        image.freq = (Math.random() * 2 - 1) * 0.3;
+        image.amp = Math.random() * 20;
+        scene.fuzzes.push(image);
+      }
+    }
+
+    function updateFuzzes(scene, time, dtMs) {
+      for (let fuzz of scene.fuzzes) {
+        fuzz.x = fuzz.origX + Math.sin(2 * Math.PI * fuzz.freq * time / 1000) * fuzz.amp;
+        fuzz.y = fuzz.origY + Math.cos(2 * Math.PI * fuzz.freq * time / 1000) * fuzz.amp;
+      }
+    }
+
     function create() {
+      this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
       this.sound.add('bgmusic', { loop: true, volume: 0.2 }).play();
 
       this.clickAudio = this.sound.add('click', { volume: 0.1 });
       this.powerupAudio = this.sound.add('powerup', { volume: 0.1 });
 
-      this.add.image(config.width / 2, config.height / 2, 'softbg').depth = 0;
+      createFuzz(this);
 
       this.entities = [];
 
@@ -232,6 +258,7 @@
       this.input.on('pointerdown', (pointer) => {
         let x = pointer.worldX;
         let y = pointer.worldY;
+        console.log(`clicked @ ${x}, ${y}`);
         clickEmitter.explode(30, x, y);
         this.clickAudio.play();
 
@@ -252,10 +279,12 @@
       });
     }
 
-    function update(time, deltaTime) {
+    function update(time, dtMs) {
       for (let ent of this.entities) {
-        ent.update(deltaTime);
+        ent.update(dtMs);
       }
+
+      updateFuzzes(this, time, dtMs);
     }
   </script>
 
