@@ -102,6 +102,14 @@
 
         this.prevVelX = 0;
         this.prevVelY = 0;
+        this.spinDir = 1;
+      }
+
+      commandToWorldPos(x, y) {
+        this.targetMode = 'pos';
+        this.targetX = x;
+        this.targetY = y;
+        this.spinDir *= -1;
       }
 
       goTowards(x, y, dt) {
@@ -119,7 +127,7 @@
 
       onClick(scene) {
         if (!this.zoomed) {
-          scene.cameras.main.zoomTo(5, 1000, Phaser.Math.Easing.Cubic.In, true);
+          scene.cameras.main.zoomTo(12, 1000, Phaser.Math.Easing.Cubic.In, true);
           this.zoomed = true;
         }
         else {
@@ -146,7 +154,8 @@
           }
         }
 
-        this.gameObject.angle += dtMs / 1000 * 180;
+        let degsPersec = this.zoomed ? 5 : 60;
+        this.gameObject.angle += dtMs / 1000 * degsPersec * this.spinDir;
       }
     }
 
@@ -178,6 +187,7 @@
     function create() {
       this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
       this.sound.add('bgmusic', { loop: true, volume: 0.2 }).play();
+      this.cameras.main.setBackgroundColor("#221111")
 
       this.clickAudio = this.sound.add('click', { volume: 0.1 });
       this.powerupAudio = this.sound.add('powerup', { volume: 0.1 });
@@ -212,6 +222,7 @@
           explosionEmitter.explode(100, sugarImage.x, sugarImage.y);
           sugar.destroy();
           this.powerupAudio.play();
+          this.cameras.main.shake(400, 0.005);
         });
       }
 
@@ -282,9 +293,7 @@
 
         if (!clickedAny) {
           // Clicked bg
-          cell.targetMode = 'pos';
-          cell.targetX = x;
-          cell.targetY = y;
+          cell.commandToWorldPos(x, y);
         }
       });
     }
