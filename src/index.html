@@ -158,6 +158,8 @@
 
       let cell = new CellEntity(cellImage);
       selectedCellEntity = cell;
+      this.cameras.main.startFollow(cellImage);
+      this.cameras.main.setLerp(0.1);
       this.entities.push(cell)
 
       for (let i = 0; i < 5; i++) {
@@ -198,7 +200,7 @@
       clickEmitter.stop();
 
       let getObjectsUnderPointer = (pointer) => {
-        return this.physics.overlapRect(pointer.x, pointer.y, 1, 1);
+        return this.physics.overlapRect(pointer.worldX, pointer.worldY, 1, 1);
       };
 
       let prevHoveredEnts = new Set();
@@ -228,7 +230,9 @@
 
       // Scene-wide click handler
       this.input.on('pointerdown', (pointer) => {
-        clickEmitter.explode(30, pointer.x, pointer.y);
+        let x = pointer.worldX;
+        let y = pointer.worldY;
+        clickEmitter.explode(30, x, y);
         this.clickAudio.play();
 
         let clickedAny = false;
@@ -242,8 +246,8 @@
         if (!clickedAny) {
           // Clicked bg
           cell.targetMode = 'pos';
-          cell.targetX = pointer.x;
-          cell.targetY = pointer.y;
+          cell.targetX = x;
+          cell.targetY = y;
         }
       });
     }
