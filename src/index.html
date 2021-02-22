@@ -47,8 +47,7 @@
         gameObject.entity = this;
       }
 
-      onClick() {
-        console.log('hi');
+      onClick(scene) {
       }
 
       onPointerIn() {
@@ -76,7 +75,7 @@
         this.gameObject = null;
       }
 
-      onClick() {
+      onClick(scene) {
         if (selectedCellEntity) {
           selectedCellEntity.targetMode = 'ent';
           selectedCellEntity.targetEnt = this;
@@ -116,6 +115,17 @@
         this.prevVelX = dx / dist * speed;
         this.prevVelY = dy / dist * speed;
         this.gameObject.setVelocity(this.prevVelX, this.prevVelY);
+      }
+
+      onClick(scene) {
+        if (!this.zoomed) {
+          scene.cameras.main.zoomTo(5, 1000, Phaser.Math.Easing.Cubic.In, true);
+          this.zoomed = true;
+        }
+        else {
+          scene.cameras.main.zoomTo(1, 1000, Phaser.Math.Easing.Quartic.Out, true);
+          this.zoomed = false;
+        }
       }
 
       update(dtMs) {
@@ -265,7 +275,7 @@
         let clickedAny = false;
         for (let body of getObjectsUnderPointer(pointer)) {
           if (body.gameObject.entity) {
-            body.gameObject.entity.onClick();
+            body.gameObject.entity.onClick(this);
             clickedAny = true;
           }
         }
