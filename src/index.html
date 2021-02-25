@@ -129,101 +129,89 @@
       }
 
       onClick(scene) {
-        if (!this.zoomed) {
-          scene.cameras.main.zoomTo(12, 1000, Phaser.Math.Easing.Cubic.In, true,
-            (camera, progress, x, y) => {
-              if (progress >= 0.5) {
-                scene.enterCellMode(this);
-              }
-            });
-          this.zoomed = true;
-        }
-        else {
-          scene.cameras.main.zoomTo(1, 1000, Phaser.Math.Easing.Quartic.Out, true,
-            (camera, progress, x, y) => {
-              if (progress >= 0.5) {
-                scene.enterMoveMode();
-              }
-            });
-
-          this.zoomed = false;
+        if (!this.scene.isCellMode()) {
+          scene.enterCellMode(this);
         }
       }
 
       onPointerIn() {
         if (!this.gameObject) return;
-        if(!this.scene.isCellMode()) {
-            this.gameObject.setTint(0x88ff88);
+        if (!this.scene.isCellMode()) {
+          this.gameObject.setTint(0x88ff88);
         }
       }
 
       update(dtMs) {
         if (!this.gameObject) return;
 
-        if(this.scene.isCellMode()) {
-            this.gameObject.clearTint();
-            this.gameObject.setVelocity(0, 0);
-            this.gameObject.setAngularVelocity(0);
-            this.gameObject.setImmovable(true);
-            this.gameObject.angle += dtMs / 1000 * 5 * this.spinDir;
+        if (this.scene.isCellMode()) {
+          this.gameObject.clearTint();
+          this.gameObject.setVelocity(0, 0);
+          this.gameObject.setAngularVelocity(0);
+          this.gameObject.setImmovable(true);
+          this.gameObject.angle += dtMs / 1000 * 5 * this.spinDir;
+          this.targetMode = 'none';
         }
         else {
-            this.gameObject.setImmovable(false);
-            if (this.targetMode == 'pos') {
-                this.goTowards(this.targetX, this.targetY, dtMs);
+          this.gameObject.setImmovable(false);
+          if (this.targetMode == 'pos') {
+            this.goTowards(this.targetX, this.targetY, dtMs);
+          }
+          else if (this.targetMode == 'ent') {
+            if (this.targetEnt == null || this.targetEnt.gameObject == null) {
+              // It's gone - just go a bit past it
+              this.targetMode = 'pos';
+              let pastTime = 0.1;
+              this.targetX = this.gameObject.x + this.prevVelX * pastTime;
+              this.targetY = this.gameObject.y + this.prevVelY * pastTime;
+            } else {
+              this.goTowards(this.targetEnt.gameObject.x, this.targetEnt.gameObject.y, dtMs);
             }
-            else if (this.targetMode == 'ent') {
-                if (this.targetEnt == null || this.targetEnt.gameObject == null) {
-                    // It's gone - just go a bit past it
-                    this.targetMode = 'pos';
-                    let pastTime = 0.1;
-                    this.targetX = this.gameObject.x + this.prevVelX * pastTime;
-                    this.targetY = this.gameObject.y + this.prevVelY * pastTime;
-                } else {
-                    this.goTowards(this.targetEnt.gameObject.x, this.targetEnt.gameObject.y, dtMs);
-                }
-            }
+          }
 
-            this.gameObject.angle += dtMs / 1000 * 60 * this.spinDir;
+          this.gameObject.angle += dtMs / 1000 * 60 * this.spinDir;
         }
       }
     }
 
     class CellMode {
-        constructor(scene, cellEnt) {
-            this.scene = scene;
-            this.cellEntity = cellEnt;
+      constructor(scene, cellEnt) {
+        this.scene = scene;
+        this.cellEntity = cellEnt;
 
-            this.ents = [];
+        this.ents = [];
 
-            let globalScale = 1.0;
+        let globalScale = 1.0;
 
-            let cx = cellEnt.gameObject.x;
-            let cy = cellEnt.gameObject.y;
-            {
-                let mito = scene.add.image(cx - 10, cy + 10, 'mito');
-                mito.setScale(0.1 * globalScale);
-                this.ents.push(mito);
-            }
-            {
-                let mito = scene.add.image(cx + 10, cy + 12, 'mito');
-                mito.setScale(0.1 * globalScale);
-                mito.setAngle(-30);
-                this.ents.push(mito);
-            }
-            {
-                let nuc = scene.add.image(cx + 0, cy - 5, 'nuc');
-                nuc.setScale(0.1 * globalScale);
-                this.ents.push(nuc);
-            }
+        let cx = cellEnt.gameObject.x;
+        let cy = cellEnt.gameObject.y;
+        {
+          let mito = scene.add.image(cx - 10, cy + 10, 'mito').setInteractive();
+          mito.setScale(0.1 * globalScale);
+          this.ents.push(mito);
         }
-
-        dispose() {
-            for(let ent of this.ents) {
-                ent.destroy();
-            }
-            this.ents = [];
+        {
+          let mito = scene.add.image(cx + 10, cy + 12, 'mito').setInteractive();
+          mito.setScale(0.1 * globalScale);
+          mito.setAngle(-30);
+          this.ents.push(mito);
         }
+        {
+          let nuc = scene.add.image(cx + 0, cy - 5, 'nuc').setInteractive();
+          nuc.on('pointerdown', () => {
+            console.log('nuclers....');
+          });
+          nuc.setScale(0.1 * globalScale);
+          this.ents.push(nuc);
+        }
+      }
+
+      dispose() {
+        for (let ent of this.ents) {
+          ent.destroy();
+        }
+        this.ents = [];
+      }
     }
 
     const worldWidth = 2000;
@@ -359,11 +347,17 @@
 
         if (!clickedAny) {
           // Clicked bg
-          cell.commandToWorldPos(x, y);
+          if (this.isCellMode()) {
+            this.enterMoveMode();
+          }
+          else {
+            cell.commandToWorldPos(x, y);
+          }
         }
       });
 
       this.enterCellMode = (cellEnt) => {
+        this.cameras.main.zoomTo(12, 1000, Phaser.Math.Easing.Cubic.In, true);
         if (this.mode == "cell") return;
         this.mode = "cell";
         this.cellMode = new CellMode(this, cellEnt);
@@ -373,9 +367,10 @@
         if (this.mode == "move") return;
         this.mode = "move";
         this.cameras.main.setBackgroundColor("#221111")
-        if(this.cellMode) {
-            this.cellMode.dispose();
-            this.cellMode = null;
+        this.cameras.main.zoomTo(1, 1000, Phaser.Math.Easing.Quartic.Out, true);
+        if (this.cellMode) {
+          this.cellMode.dispose();
+          this.cellMode = null;
         }
       };
 
