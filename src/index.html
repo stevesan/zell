@@ -8,6 +8,89 @@
 <body>
 
   <script>
+
+    // Our "ECS" system
+
+    class EntityTreeNode {
+      // Not to be used directly
+      constructor(entity) {
+        this.entity = entity;
+        entity.__entityTreeNode = this;
+        this.childNodes = new Set();
+        this.parentNode = null;
+      }
+
+      findRoot() {
+        if (this.parentNode === null) {
+          return this;
+        }
+        else {
+          return this.parentNode.findRoot();
+        }
+      }
+
+      static reparent(childNode, newParentNode) {
+        if (childNode.parentNode === newParentNode) return;
+        if (childNode.parentNode !== null) {
+          assert(childNode.parentNode.childNodes.has(childNode));
+          childNode.parentNode.childNodes.delete(childNode);
+        }
+        childNode.parentNode = newParentNode;
+        if (newParentNode !== null) {
+          assert(!newParentNode.childNodes.has(childNode));
+          newParentNode.childNodes.add(childNode);
+        }
+      }
+
+      static assertTree(rootNode) {
+        for (let child of rootNode.childNodes) {
+          assert(child.parentNode == rootNode);
+          assertTree(child);
+        }
+        // TODO check for cycles
+      }
+    }
+    class EntityTree {
+      constructor() {
+        this.rootNode = new EntityTreeNode({});
+      }
+
+      add(entity, parentEnt) {
+        let parentNode = parentEnt === null ? this.rootNode : parentEnt.__entityTreeNode;
+        assert(parentNode.findRoot() == this.rootNode, "parent does not belong to this tree");
+        let entNode = new EntityTreeNode(entity);
+        EntityTreeNode.reparent(entNode, parentNode);
+        EntityTreeNode.assertTree(this.rootNode);
+      }
+
+      reparent(entity, newParent) {
+        assert(entity.findRoot() == this.rootNode, "entity does not belong to this tree");
+        assert(newParent.findRoot() == this.rootNode, "new parent does not belong to this tree");
+        EntityTreeNode.reparent(entity.__entityTreeNode, newParent.__entityTreeNode);
+        EntityTreeNode.assertTree(this.rootNode);
+      }
+
+      // Destroys the given entity and all its descendents
+      destroy(entity) {
+        EntityTreeNode.reparent(entity.__entityTreeNode, null);
+        entity.destroy();
+        for (let child of entity.__entityTreeNode.childNodes) {
+          this.destroy(child);
+        }
+      }
+
+      update() {
+        this._updateSubtree(this.rootNode);
+      }
+
+      _updateSubtree(node) {
+        node.entity.update();
+        for (let child of node.childNodes) {
+          this._updateSubtree(child);
+        }
+      }
+    }
+
     var config = {
       type: Phaser.AUTO,
       width: 1280,
@@ -186,8 +269,8 @@
         const scale = 0.05;
 
         const textStyle = {
-          font: "32px Arial Black", fill: "#000",
-          stroke: "#fff", strokeThickness: 5
+          font: "32px Arial Black", fill: "#fff",
+          stroke: "#000", strokeThickness: 5
         };
 
         const scene = this.scene;
