@@ -183,23 +183,48 @@
 
         let globalScale = 1.0;
 
+        let throb = (image) => {
+          scene.tweens.add({
+            targets: image,
+            scaleX: 0.11,
+            scaleY: 0.11,
+            _ease: 'Sine.easeInOut',
+            ease: 'Power2',
+            duration: 50,
+            delay: 0,
+            repeat: 0,
+            yoyo: true,
+            hold: 0,
+            repeatDelay: 0
+          });
+        };
+
         let cx = cellEnt.gameObject.x;
         let cy = cellEnt.gameObject.y;
         {
           let mito = scene.add.image(cx - 10, cy + 10, 'mito').setInteractive();
           mito.setScale(0.1 * globalScale);
+          mito.on('pointerdown', () => {
+            throb(mito);
+            console.log('mito....');
+          });
           this.ents.push(mito);
         }
         {
           let mito = scene.add.image(cx + 10, cy + 12, 'mito').setInteractive();
           mito.setScale(0.1 * globalScale);
           mito.setAngle(-30);
+          mito.on('pointerdown', () => {
+            console.log('mito....');
+            throb(mito);
+          });
           this.ents.push(mito);
         }
         {
           let nuc = scene.add.image(cx + 0, cy - 5, 'nuc').setInteractive();
           nuc.on('pointerdown', () => {
-            console.log('nuclers....');
+            console.log('nucleus....');
+            throb(nuc);
           });
           nuc.setScale(0.1 * globalScale);
           this.ents.push(nuc);
@@ -243,7 +268,7 @@
       this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
       this.sound.add('bgmusic', { loop: true, volume: 0.2 }).play();
 
-      this.clickAudio = this.sound.add('click', { volume: 0.1 });
+      this.clickAudio = this.sound.add('click', { volume: 0.3 });
       this.powerupAudio = this.sound.add('powerup', { volume: 0.1 });
 
       createFuzz(this);
@@ -334,7 +359,9 @@
         let x = pointer.worldX;
         let y = pointer.worldY;
         console.log(`clicked @ ${x}, ${y}`);
-        clickEmitter.explode(30, x, y);
+        if (!this.isCellMode()) {
+          clickEmitter.explode(30, x, y);
+        }
         this.clickAudio.play();
 
         let clickedAny = false;
