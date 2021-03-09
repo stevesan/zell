@@ -9,88 +9,6 @@
 
   <script>
 
-    // Our "ECS" system
-
-    class EntityTreeNode {
-      // Not to be used directly
-      constructor(entity) {
-        this.entity = entity;
-        entity.__entityTreeNode = this;
-        this.childNodes = new Set();
-        this.parentNode = null;
-      }
-
-      findRoot() {
-        if (this.parentNode === null) {
-          return this;
-        }
-        else {
-          return this.parentNode.findRoot();
-        }
-      }
-
-      static reparent(childNode, newParentNode) {
-        if (childNode.parentNode === newParentNode) return;
-        if (childNode.parentNode !== null) {
-          assert(childNode.parentNode.childNodes.has(childNode));
-          childNode.parentNode.childNodes.delete(childNode);
-        }
-        childNode.parentNode = newParentNode;
-        if (newParentNode !== null) {
-          assert(!newParentNode.childNodes.has(childNode));
-          newParentNode.childNodes.add(childNode);
-        }
-      }
-
-      static assertTree(rootNode) {
-        for (let child of rootNode.childNodes) {
-          assert(child.parentNode == rootNode);
-          assertTree(child);
-        }
-        // TODO check for cycles
-      }
-    }
-    class EntityTree {
-      constructor() {
-        this.rootNode = new EntityTreeNode({});
-      }
-
-      add(entity, parentEnt) {
-        let parentNode = parentEnt === null ? this.rootNode : parentEnt.__entityTreeNode;
-        assert(parentNode.findRoot() == this.rootNode, "parent does not belong to this tree");
-        let entNode = new EntityTreeNode(entity);
-        EntityTreeNode.reparent(entNode, parentNode);
-        EntityTreeNode.assertTree(this.rootNode);
-      }
-
-      reparent(entity, newParent) {
-        assert(entity.findRoot() == this.rootNode, "entity does not belong to this tree");
-        assert(newParent.findRoot() == this.rootNode, "new parent does not belong to this tree");
-        EntityTreeNode.reparent(entity.__entityTreeNode, newParent.__entityTreeNode);
-        EntityTreeNode.assertTree(this.rootNode);
-      }
-
-      // Destroys the given entity and all its descendents
-      destroy(entity) {
-        EntityTreeNode.reparent(entity.__entityTreeNode, null);
-        entity.destroy();
-        for (let child of entity.__entityTreeNode.childNodes) {
-          this.destroy(child);
-        }
-      }
-
-      update() {
-        this._updateSubtree(this.rootNode);
-      }
-
-      _updateSubtree(node) {
-        node.entity.update();
-        for (let child of node.childNodes) {
-          this._updateSubtree(child);
-        }
-      }
-    }
-
     var config = {
       type: Phaser.AUTO,
       width: 1280,
@@ -129,7 +47,57 @@
     class Entity {
       constructor(gameObject) {
         this.gameObject = gameObject;
-        this.gameObject.entity = this;
+        if (gameObject !== null) {
+          this.gameObject.entity = this;
+        }
+        this.parentNode = null;
+        this.childNodes = new Set();
+      }
+
+      findRoot() {
+        if (this.parentNode === null) {
+          return this;
+        }
+        else {
+          return this.parentNode.findRoot();
+        }
+      }
+
+      hasChild(ent) {
+        return this.childNodes.has(ent);
+      }
+
+      setParent(newParent) {
+        if (this.parentNode === newParent) return;
+        if (this.parentNode !== null) {
+          console.assert(this.parentNode.hasChild(this));
+          this.parentNode.childNodes.delete(this);
+        }
+        this.parentNode = newParent;
+        if (newParent !== null) {
+          console.assert(!newParent.hasChild(this));
+          newParent.childNodes.add(this);
+        }
+      }
+
+      selfUpdate(dt) {
+      }
+
+      update(dt) {
+        this.selfUpdate(dt);
+        for (const child of this.childNodes) {
+          child.update(dt);
+        }
+      }
+
+      destroy() {
+        this.setParent(null);
+        if (this.gameObject) this.gameObject.destroy();
+        this.gameObject = null;
+        for (const child of this.childNodes) {
+          child.destroy();
+        }
+        this.childNodes.clear();
       }
 
       onClick() {
@@ -151,13 +119,8 @@
         super(go);
       }
 
-      update(dt) {
+      selfUpdate(dt) {
         if (!this.gameObject) return;
-      }
-
-      destroy() {
-        this.gameObject.destroy();
-        this.gameObject = null;
       }
 
       onClick() {
@@ -256,10 +219,10 @@
       }
     }
 
-    class ActionMenu {
+    class ActionMenu extends Entity {
       constructor(scene) {
+        super(null);
         this.scene = scene;
-        this.destroyables = [];
       }
 
       create(x, y) {
@@ -273,35 +236,27 @@
         };
 
         const scene = this.scene;
-        this.header = scene.add.text(x, y,
+        this.header = new Entity(scene.add.text(x, y,
           'Nucleus',
-          textStyle);
-        this.header.setScale(scale);
-        this.destroyables.push(this.header);
+          textStyle));
+        this.header.gameObject.setScale(scale);
+        this.header.setParent(this);
 
         y += 5;
 
-        this.erButton = scene.add.text(x, y,
+        this.erButton = new Entity(scene.add.text(x, y,
           'Endoplasmic Reticulum (ER)   [+]',
-          textStyle);
-        this.erButton.setScale(scale);
-        this.destroyables.push(this.erButton);
-      }
-
-      destroy() {
-        for (let obj of this.destroyables) {
-          obj.destroy();
-        }
-        this.destroyables = [];
+          textStyle));
+        this.erButton.gameObject.setScale(scale);
+        this.erButton.setParent(this);
       }
     }
 
-    class CellMode {
+    class CellMode extends Entity {
       constructor(scene, cellEnt) {
+        super(null);
         this.scene = scene;
         this.cellEntity = cellEnt;
-
-        this.destroyables = new Set();
 
         let globalScale = 1.0;
 
@@ -330,7 +285,7 @@
             throb(mito);
             console.log('mito....');
           });
-          this.destroyables.add(mito);
+          new Entity(mito).setParent(this);
         }
         {
           let mito = scene.add.image(cx + 10, cy + 12, 'mito').setInteractive();
@@ -340,7 +295,7 @@
             console.log('mito....');
             throb(mito);
           });
-          this.destroyables.add(mito);
+          new Entity(mito).setParent(this);
         }
         {
           let nuc = scene.add.image(cx + 0, cy - 5, 'nuc').setInteractive();
@@ -350,25 +305,17 @@
 
             if (this.actionMenu) {
               this.actionMenu.destroy();
-              this.destroyables.delete(this.actionMenu);
               this.actionMenu = null;
             }
             else {
               this.actionMenu = new ActionMenu(scene);
               this.actionMenu.create(nuc.x, nuc.y);
-              this.destroyables.add(this.actionMenu);
+              this.actionMenu.setParent(this);
             }
           });
           nuc.setScale(0.1 * globalScale);
-          this.destroyables.add(nuc);
+          new Entity(nuc).setParent(this);
         }
-      }
-
-      destroy() {
-        for (let obj of this.destroyables) {
-          obj.destroy();
-        }
-        this.destroyables.clear();
       }
     }
 
@@ -406,7 +353,7 @@
 
       createFuzz(this);
 
-      this.entities = [];
+      this.rootEntity = new Entity(null);
 
       var cellImage = this.physics.add.image(config.width / 2, config.height / 2, 'cell');
       cellImage.setCircle(32);
@@ -418,7 +365,7 @@
       selectedCellEntity = cell;
       this.cameras.main.startFollow(cellImage);
       this.cameras.main.setLerp(0.1);
-      this.entities.push(cell)
+      cell.setParent(this.rootEntity);
 
       for (let i = 0; i < 5; i++) {
         var sugarImage = this.physics.add.image(Math.random() * config.width, Math.random() * config.height, 'sugar');
@@ -428,7 +375,7 @@
         sugarImage.setBounce(1, 1);
         sugarImage.setCollideWorldBounds(true);
         let sugar = new SugarEntity(sugarImage);
-        this.entities.push(sugar);
+        sugar.setParent(this.rootEntity);
 
         this.physics.add.overlap(sugarImage, cellImage, (sugarImage, cellImage) => {
           explosionEmitter.explode(100, sugarImage.x, sugarImage.y);
@@ -541,9 +488,7 @@
 
 
     function update(time, dtMs) {
-      for (let ent of this.entities) {
-        ent.update(dtMs);
-      }
+      this.rootEntity.update(dtMs);
 
       updateFuzzes(this, time, dtMs);
     }
