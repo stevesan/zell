@@ -127,13 +127,12 @@
     }
 
     class Entity {
-      constructor(scene, gameObject) {
-        this.scene = scene;
+      constructor(gameObject) {
         this.gameObject = gameObject;
-        gameObject.entity = this;
+        this.gameObject.entity = this;
       }
 
-      onClick(scene) {
+      onClick() {
       }
 
       onPointerIn() {
@@ -148,8 +147,8 @@
     }
 
     class SugarEntity extends Entity {
-      constructor(scene, go) {
-        super(scene, go);
+      constructor(go) {
+        super(go);
       }
 
       update(dt) {
@@ -161,7 +160,7 @@
         this.gameObject = null;
       }
 
-      onClick(scene) {
+      onClick() {
         if (selectedCellEntity) {
           selectedCellEntity.targetMode = 'ent';
           selectedCellEntity.targetEnt = this;
@@ -182,8 +181,8 @@
     let selectedCellEntity = null;
 
     class CellEntity extends Entity {
-      constructor(scene, go) {
-        super(scene, go);
+      constructor(go) {
+        super(go);
         this.targetMode = 'none';
 
         this.prevVelX = 0;
@@ -211,15 +210,15 @@
         this.gameObject.setVelocity(this.prevVelX, this.prevVelY);
       }
 
-      onClick(scene) {
-        if (!this.scene.isCellMode()) {
-          scene.enterCellMode(this);
+      onClick() {
+        if (!this.gameObject.scene.isCellMode()) {
+          this.gameObject.scene.enterCellMode(this);
         }
       }
 
       onPointerIn() {
         if (!this.gameObject) return;
-        if (!this.scene.isCellMode()) {
+        if (!this.gameObject.scene.isCellMode()) {
           this.gameObject.setTint(0x88ff88);
         }
       }
@@ -227,7 +226,7 @@
       update(dtMs) {
         if (!this.gameObject) return;
 
-        if (this.scene.isCellMode()) {
+        if (this.gameObject.scene.isCellMode()) {
           this.gameObject.clearTint();
           this.gameObject.setVelocity(0, 0);
           this.gameObject.setAngularVelocity(0);
@@ -415,7 +414,7 @@
       cellImage.setBounce(1, 1);
       cellImage.setCollideWorldBounds(true);
 
-      let cell = new CellEntity(this, cellImage);
+      let cell = new CellEntity(cellImage);
       selectedCellEntity = cell;
       this.cameras.main.startFollow(cellImage);
       this.cameras.main.setLerp(0.1);
@@ -428,7 +427,7 @@
         sugarImage.setAngularVelocity((Math.random() - 0.5) * 180);
         sugarImage.setBounce(1, 1);
         sugarImage.setCollideWorldBounds(true);
-        let sugar = new SugarEntity(this, sugarImage);
+        let sugar = new SugarEntity(sugarImage);
         this.entities.push(sugar);
 
         this.physics.add.overlap(sugarImage, cellImage, (sugarImage, cellImage) => {
