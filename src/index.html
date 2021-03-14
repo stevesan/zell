@@ -27,6 +27,27 @@
       }
     };
 
+    function throb(scene, image, amount) {
+      if (amount === undefined) {
+        amount = 1.2;
+      }
+      if (image.__throbbing) return;
+      image.__throbbing = true;
+      const origScale = image.scale;
+      image.setScale(origScale * amount);
+      scene.tweens.add({
+        targets: image,
+        scale: origScale,
+        ease: 'Quadratic',
+        duration: 200,
+        delay: 0,
+        repeat: 0,
+        onComplete: () => {
+          image.__throbbing = false;
+        }
+      });
+    }
+
     var game = new Phaser.Game(config);
 
     function preload() {
@@ -37,6 +58,7 @@
       this.load.image('fuzz', 'fuzz.png');
       this.load.image('sugar', 'molecule.png');
       this.load.image('arrow', 'arrow.png');
+      this.load.image('endoret', 'endoret.png');
       this.load.image('particles/blue', 'particles/blue.png');
 
       this.load.audio('click', 'sounds/click.wav');
@@ -220,12 +242,18 @@
     }
 
     class NucleusMenu extends Entity {
-      constructor(scene) {
+      constructor(scene, state, reportStateChange) {
         super(null);
         this.scene = scene;
+        this.state = state;
+        this.reportStateChange = reportStateChange;
       }
 
-      create(x, y) {
+      onStateChanged() {
+        const state = this.state;
+
+        let x = this.state.cellX;
+        let y = this.state.cellY;
         x -= 40;
         y -= 10;
         const scale = 0.05;
@@ -236,37 +264,72 @@
         };
 
         const scene = this.scene;
-        this.header = new Entity(scene.add.text(x, y,
-          'Nucleus',
-          textStyle));
-        this.header.gameObject.setScale(scale);
-        this.header.setParent(this);
+        if (!this.header) {
+          this.header = new Entity(scene.add.text(x, y,
+            'Nucleus',
+            textStyle));
+          this.header.gameObject.setScale(scale);
+          this.header.setParent(this);
+        }
 
         y += 5;
 
-        this.erButton = new Entity(scene.add.text(x, y,
-          'Endoplasmic Reticulum (ER)   [+]',
-          textStyle));
-        this.erButton.gameObject.setScale(scale);
-        this.erButton.setParent(this);
+        if (!this.erButton) {
+          this.erButton = new Entity(scene.add.text(x, y,
+            'Endoplasmic Reticulum (ER)   [+]',
+            textStyle));
+          this.erButton.gameObject.setScale(scale);
+          this.erButton.setParent(this);
+        }
+        if (this.state.endoRetShowing) {
+          this.erButton.gameObject.setTint(0x888888);
+          this.erButton.gameObject.disableInteractive();
+        }
+        else {
+          this.erButton.gameObject.setInteractive();
+          this.erButton.gameObject.on('pointerdown', () => {
+            throb(scene, this.erButton.gameObject, 1.05);
+            this.state.endoRetShowing = true;
+            this.reportStateChange();
+          });
+        }
       }
     }
 
     class CellMode extends Entity {
       onStateChanged() {
+        const state = this.state;
+        const scene = this.scene;
+
         if (this.state.nucleusMenuShowing) {
-          if (!this.state.nucleusMenuState) {
-            this.state.nucleusMenuState = {};
+          if (!this.nucleusMenu) {
+            this.nucleusMenu = new NucleusMenu(this.scene, this.state, () => this.onStateChanged());
+            this.nucleusMenu.setParent(this);
           }
-          this.nucleusMenu = new NucleusMenu(this.scene, this.state.nucleusMenuState);
-          this.nucleusMenu.create(this.nucleus.x, this.nucleus.y);
-          this.nucleusMenu.setParent(this);
+          this.nucleusMenu.onStateChanged();
         }
         else {
           if (this.nucleusMenu) {
             this.nucleusMenu.destroy();
             this.nucleusMenu = null;
           }
+        }
+
+        if (state.endoRetShowing && !this.endoRet) {
+          let er = scene.add.image(state.cellX + 0, state.cellY + 3, 'endoret').setInteractive();
+          er.on('pointerdown', () => {
+            throb(scene, er);
+            // this.state.nucleusMenuShowing = !this.state.nucleusMenuShowing;
+            // this.onStateChanged();
+
+          });
+          er.setScale(0.1);
+          this.endoRet = new Entity(er);
+          this.endoRet.setParent(this);
+        }
+        else if (!state.endoRetShowing && this.endoRet) {
+          this.endoRet.destroy();
+          this.endoRet = null;
         }
       }
 
@@ -278,23 +341,8 @@
 
         let globalScale = 1.0;
 
-        let throb = (image) => {
-          if (image.__throbbing) return;
-          image.__throbbing = true;
-          const origScale = image.scale;
-          image.setScale(origScale * 1.2);
-          scene.tweens.add({
-            targets: image,
-            scale: origScale,
-            ease: 'Quadratic',
-            duration: 200,
-            delay: 0,
-            repeat: 0,
-            onComplete: () => {
-              image.__throbbing = false;
-            }
-          });
-        };
+        this.state.cellX = cellEnt.gameObject.x;
+        this.state.cellY = cellEnt.gameObject.y;
 
         let cx = cellEnt.gameObject.x;
         let cy = cellEnt.gameObject.y;
@@ -302,7 +350,7 @@
           let mito = scene.add.image(cx - 10, cy + 10, 'mito').setInteractive();
           mito.setScale(0.1 * globalScale);
           mito.on('pointerdown', () => {
-            throb(mito);
+            throb(scene, mito);
             console.log('mito....');
           });
           new Entity(mito).setParent(this);
@@ -313,28 +361,21 @@
           mito.setAngle(-30);
           mito.on('pointerdown', () => {
             console.log('mito....');
-            throb(mito);
+            throb(scene, mito);
           });
           new Entity(mito).setParent(this);
         }
         {
           let nuc = scene.add.image(cx + 0, cy - 5, 'nuc').setInteractive();
-          nuc.on('pointerover', () => {
-            // nuc.setTint(0x00f);
-          });
-          nuc.on('pointerout', () => {
-            nuc.clearTint();
-          });
           nuc.on('pointerdown', () => {
-            throb(nuc);
+            throb(scene, nuc);
             this.state.nucleusMenuShowing = !this.state.nucleusMenuShowing;
             this.onStateChanged();
 
           });
           nuc.setScale(0.1 * globalScale);
-          new Entity(nuc).setParent(this);
-
-          this.nucleus = nuc;
+          this.nucleus = new Entity(nuc);
+          this.nucleus.setParent(this);
         }
 
         this.onStateChanged();
