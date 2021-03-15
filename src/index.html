@@ -292,9 +292,13 @@
           y += 5;
           let buttonEnt = this.buttonEnts.get(button['id']);
           if (!buttonEnt) {
-            buttonEnt = new Entity(scene.add.text(x, y, '',
-              textStyle));
-            buttonEnt.gameObject.setScale(scale);
+            const text = scene.add.text(x, y, '', textStyle);
+            text.setScale(scale);
+            text.on('pointerdown', () => {
+              throb(scene, buttonEnt.gameObject, 1.05);
+              button['onClick']();
+            });
+            buttonEnt = new Entity(text);
             buttonEnt.setParent(this);
             this.buttonEnts.set(button['id'], buttonEnt);
           }
@@ -304,10 +308,6 @@
           }
           else {
             buttonEnt.gameObject.setInteractive();
-            buttonEnt.gameObject.on('pointerdown', () => {
-              throb(scene, buttonEnt.gameObject, 1.05);
-              button['onClick']();
-            });
           }
           buttonEnt.gameObject.setText(button['label']());
         }
@@ -321,15 +321,18 @@
 
       getTitle() { return 'Golgi Apparatus'; }
 
+      getButtons() { return []; }
+    }
+
+    class MitoMenu extends BaseMenu {
+      constructor(scene, state, reportStateChange) {
+        super(scene, state, reportStateChange);
+      }
+
+      getTitle() { return 'Mitochondria'; }
+
       getButtons() {
-        return [
-          {
-            id: '1234',
-            label: () => 'test test est set set es',
-            enabled: () => this.state.endoRetShowing,
-            onClick: () => console.log('hifdsfsd')
-          }
-        ];
+        return [];
       }
     }
 
@@ -389,6 +392,9 @@
         else if (name == 'golgi') {
           return new GolgiMenu(this.scene, this.state, () => this.onStateChanged());
         }
+        else if (name == 'mito') {
+          return new MitoMenu(this.scene, this.state, () => this.onStateChanged());
+        }
         else {
           throw `Bad menu name: ${name}`;
         }
@@ -447,22 +453,14 @@
 
         let cx = cellEnt.gameObject.x;
         let cy = cellEnt.gameObject.y;
-        {
-          let mito = scene.add.image(cx - 10, cy + 10, 'mito').setInteractive();
+
+        for (let dxdy of [[-10, 10], [10, 12]]) {
+          let mito = scene.add.image(cx + dxdy[0], cy + dxdy[1], 'mito').setInteractive();
           mito.setScale(0.1 * globalScale);
           mito.on('pointerdown', () => {
             throb(scene, mito);
-            console.log('mito....');
-          });
-          new Entity(mito).setParent(this);
-        }
-        {
-          let mito = scene.add.image(cx + 10, cy + 12, 'mito').setInteractive();
-          mito.setScale(0.1 * globalScale);
-          mito.setAngle(-30);
-          mito.on('pointerdown', () => {
-            console.log('mito....');
-            throb(scene, mito);
+            this.state.activeMenuName = toggleOrChange(this.state.activeMenuName, 'mito');
+            this.onStateChanged();
           });
           new Entity(mito).setParent(this);
         }
@@ -484,7 +482,6 @@
             throb(scene, golgi);
             this.state.activeMenuName = toggleOrChange(this.state.activeMenuName, 'golgi');
             this.onStateChanged();
-
           });
           golgi.setScale(0.1 * globalScale);
           this.golgi = new Entity(golgi);
