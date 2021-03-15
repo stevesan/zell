@@ -251,7 +251,88 @@
       }
     }
 
-    class NucleusMenu extends Entity {
+    class BaseMenu extends Entity {
+      constructor(scene, state, reportStateChange) {
+        super(null);
+        this.scene = scene;
+        this.state = state;
+        this.reportStateChange = reportStateChange;
+
+        this.buttonEnts = new Map();
+      }
+
+      getTitle() { return 'Some Menu'; }
+
+      getButtons() { return []; }
+
+      onStateChanged() {
+        const state = this.state;
+
+        let x = this.state.cellX;
+        let y = this.state.cellY;
+        x -= 40;
+        y -= 10;
+        const scale = 0.05;
+
+        const textStyle = {
+          font: "32px Arial Black", fill: "#fff",
+          stroke: "#000", strokeThickness: 5
+        };
+
+        const scene = this.scene;
+        if (!this.header) {
+          this.header = new Entity(scene.add.text(x, y,
+            this.getTitle(),
+            textStyle));
+          this.header.gameObject.setScale(scale);
+          this.header.setParent(this);
+        }
+
+        for (let button of this.getButtons()) {
+          y += 5;
+          let buttonEnt = this.buttonEnts.get(button['label']);
+          if (!buttonEnt) {
+            buttonEnt = new Entity(scene.add.text(x, y,
+              button['label'],
+              textStyle));
+            buttonEnt.gameObject.setScale(scale);
+            buttonEnt.setParent(this);
+            this.buttonEnts.set(button['label'], buttonEnt);
+          }
+          if (!button['enabled']()) {
+            buttonEnt.gameObject.setTint(0x888888);
+            buttonEnt.gameObject.disableInteractive();
+          }
+          else {
+            buttonEnt.gameObject.setInteractive();
+            buttonEnt.gameObject.on('pointerdown', () => {
+              throb(scene, buttonEnt.gameObject, 1.05);
+              button['onClick']();
+            });
+          }
+        }
+      }
+    }
+
+    class GolgiMenu extends BaseMenu {
+      constructor(scene, state, reportStateChange) {
+        super(scene, state, reportStateChange);
+      }
+
+      getTitle() { return 'Golgi Apparatus'; }
+
+      getButtons() {
+        return [
+          {
+            label: 'test test est set set es',
+            enabled: () => this.state.endoRetShowing,
+            onClick: () => console.log('hifdsfsd')
+          }
+        ];
+      }
+    }
+
+    class NucleusMenu extends BaseMenu {
       constructor(scene, state, reportStateChange) {
         super(null);
         this.scene = scene;
@@ -369,6 +450,9 @@
         }
         else if (name == 'er') {
           return new EndoRetMenu(this.scene, this.state, () => this.onStateChanged());
+        }
+        else if (name == 'golgi') {
+          return new GolgiMenu(this.scene, this.state, () => this.onStateChanged());
         }
         else {
           throw `Bad menu name: ${name}`;
