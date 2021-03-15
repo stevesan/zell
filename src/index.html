@@ -290,14 +290,13 @@
 
         for (let button of this.getButtons()) {
           y += 5;
-          let buttonEnt = this.buttonEnts.get(button['label']);
+          let buttonEnt = this.buttonEnts.get(button['id']);
           if (!buttonEnt) {
-            buttonEnt = new Entity(scene.add.text(x, y,
-              button['label'],
+            buttonEnt = new Entity(scene.add.text(x, y, '',
               textStyle));
             buttonEnt.gameObject.setScale(scale);
             buttonEnt.setParent(this);
-            this.buttonEnts.set(button['label'], buttonEnt);
+            this.buttonEnts.set(button['id'], buttonEnt);
           }
           if (!button['enabled']()) {
             buttonEnt.gameObject.setTint(0x888888);
@@ -310,6 +309,7 @@
               button['onClick']();
             });
           }
+          buttonEnt.gameObject.setText(button['label']());
         }
       }
     }
@@ -324,7 +324,8 @@
       getButtons() {
         return [
           {
-            label: 'test test est set set es',
+            id: '1234',
+            label: () => 'test test est set set es',
             enabled: () => this.state.endoRetShowing,
             onClick: () => console.log('hifdsfsd')
           }
@@ -334,111 +335,45 @@
 
     class NucleusMenu extends BaseMenu {
       constructor(scene, state, reportStateChange) {
-        super(null);
-        this.scene = scene;
-        this.state = state;
-        this.reportStateChange = reportStateChange;
+        super(scene, state, reportStateChange);
       }
 
-      onStateChanged() {
-        const state = this.state;
+      getTitle() { return 'Nucleus'; }
 
-        let x = this.state.cellX;
-        let y = this.state.cellY;
-        x -= 40;
-        y -= 10;
-        const scale = 0.05;
-
-        const textStyle = {
-          font: "32px Arial Black", fill: "#fff",
-          stroke: "#000", strokeThickness: 5
-        };
-
-        const scene = this.scene;
-        if (!this.header) {
-          this.header = new Entity(scene.add.text(x, y,
-            'Nucleus',
-            textStyle));
-          this.header.gameObject.setScale(scale);
-          this.header.setParent(this);
-        }
-
-        y += 5;
-
-        if (!this.erButton) {
-          this.erButton = new Entity(scene.add.text(x, y,
-            'Endoplasmic Reticulum (ER)   [+]',
-            textStyle));
-          this.erButton.gameObject.setScale(scale);
-          this.erButton.setParent(this);
-        }
-        if (this.state.endoRetShowing) {
-          this.erButton.gameObject.setTint(0x888888);
-          this.erButton.gameObject.disableInteractive();
-        }
-        else {
-          this.erButton.gameObject.setInteractive();
-          this.erButton.gameObject.on('pointerdown', () => {
-            throb(scene, this.erButton.gameObject, 1.05);
-            this.state.endoRetShowing = true;
-            this.reportStateChange();
-          });
-        }
+      getButtons() {
+        return [
+          {
+            id: 'addER',
+            label: () => 'Add Endoplasmic Reticulum (ER)',
+            enabled: () => !this.state.endoRetShowing,
+            onClick: () => {
+              this.state.endoRetShowing = true;
+              this.reportStateChange();
+            }
+          }
+        ];
       }
     }
 
-    class EndoRetMenu extends Entity {
+    class EndoRetMenu extends BaseMenu {
       constructor(scene, state, reportStateChange) {
-        super(null);
-        this.scene = scene;
-        this.state = state;
-        this.reportStateChange = reportStateChange;
+        super(scene, state, reportStateChange);
       }
 
-      onStateChanged() {
-        const state = this.state;
+      getTitle() { return 'Endoplasmic Reticulum (ER)'; }
 
-        let x = this.state.cellX;
-        let y = this.state.cellY;
-        x -= 40;
-        y -= 10;
-        const scale = 0.05;
-
-        const textStyle = {
-          font: "32px Arial Black", fill: "#fff",
-          stroke: "#000", strokeThickness: 5
-        };
-
-        const scene = this.scene;
-        if (!this.header) {
-          this.header = new Entity(scene.add.text(x, y,
-            'Endoplasmic Reticulum (ER)',
-            textStyle));
-          this.header.gameObject.setScale(scale);
-          this.header.setParent(this);
-        }
-
-        y += 5;
-
-        if (!this.ribosomesButton) {
-          this.ribosomesButton = new Entity(scene.add.text(x, y,
-            'Ribosomes   [+]',
-            textStyle));
-          this.ribosomesButton.gameObject.setScale(scale);
-          this.ribosomesButton.setParent(this);
-        }
-        if (this.state.ribosomesShowing) {
-          this.ribosomesButton.gameObject.setTint(0x888888);
-          this.ribosomesButton.gameObject.disableInteractive();
-        }
-        else {
-          this.ribosomesButton.gameObject.setInteractive();
-          this.ribosomesButton.gameObject.on('pointerdown', () => {
-            throb(scene, this.ribosomesButton.gameObject, 1.05);
-            this.state.ribosomesShowing = true;
-            this.reportStateChange();
-          });
-        }
+      getButtons() {
+        return [
+          {
+            id: 'addRibos',
+            label: () => `Add Ribosome (${this.state.numRibosomes ?? 0}/5)`,
+            enabled: () => (this.state.numRibosomes ?? 0) < 5,
+            onClick: () => {
+              this.state.numRibosomes = (this.state.numRibosomes ?? 0) + 1;
+              this.reportStateChange();
+            }
+          }
+        ];
       }
     }
 
@@ -679,7 +614,7 @@
       this.input.on('pointerdown', (pointer) => {
         let x = pointer.worldX;
         let y = pointer.worldY;
-        console.log(`clicked @ ${x}, ${y}`);
+        console.log(`clicked @${x}, ${y}`);
         if (!this.isCellMode()) {
           clickEmitter.explode(30, x, y);
         }
