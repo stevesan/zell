@@ -9,6 +9,15 @@
 
   <script>
 
+    function toggleOrChange(currVal, goalVal) {
+      if (currVal == goalVal) {
+        return null;
+      }
+      else {
+        return goalVal;
+      }
+    }
+
     var config = {
       type: Phaser.AUTO,
       width: 1280,
@@ -296,31 +305,103 @@
       }
     }
 
+    class EndoRetMenu extends Entity {
+      constructor(scene, state, reportStateChange) {
+        super(null);
+        this.scene = scene;
+        this.state = state;
+        this.reportStateChange = reportStateChange;
+      }
+
+      onStateChanged() {
+        const state = this.state;
+
+        let x = this.state.cellX;
+        let y = this.state.cellY;
+        x -= 40;
+        y -= 10;
+        const scale = 0.05;
+
+        const textStyle = {
+          font: "32px Arial Black", fill: "#fff",
+          stroke: "#000", strokeThickness: 5
+        };
+
+        const scene = this.scene;
+        if (!this.header) {
+          this.header = new Entity(scene.add.text(x, y,
+            'Endoplasmic Reticulum (ER)',
+            textStyle));
+          this.header.gameObject.setScale(scale);
+          this.header.setParent(this);
+        }
+
+        y += 5;
+
+        if (!this.ribosomesButton) {
+          this.ribosomesButton = new Entity(scene.add.text(x, y,
+            'Ribosomes   [+]',
+            textStyle));
+          this.ribosomesButton.gameObject.setScale(scale);
+          this.ribosomesButton.setParent(this);
+        }
+        if (this.state.ribosomesShowing) {
+          this.ribosomesButton.gameObject.setTint(0x888888);
+          this.ribosomesButton.gameObject.disableInteractive();
+        }
+        else {
+          this.ribosomesButton.gameObject.setInteractive();
+          this.ribosomesButton.gameObject.on('pointerdown', () => {
+            throb(scene, this.ribosomesButton.gameObject, 1.05);
+            this.state.ribosomesShowing = true;
+            this.reportStateChange();
+          });
+        }
+      }
+    }
+
     class CellMode extends Entity {
+
+      createMenuForName(name) {
+        if (name == 'nucleus') {
+          return new NucleusMenu(this.scene, this.state, () => this.onStateChanged());
+        }
+        else if (name == 'er') {
+          return new EndoRetMenu(this.scene, this.state, () => this.onStateChanged());
+        }
+        else {
+          throw `Bad menu name: ${name}`;
+        }
+      }
+
       onStateChanged() {
         const state = this.state;
         const scene = this.scene;
 
-        if (this.state.nucleusMenuShowing) {
-          if (!this.nucleusMenu) {
-            this.nucleusMenu = new NucleusMenu(this.scene, this.state, () => this.onStateChanged());
-            this.nucleusMenu.setParent(this);
+        if (this.state.activeMenuName != this.prevActiveMenuName) {
+          if (this.activeMenuEnt) {
+            this.activeMenuEnt.destroy();
+            this.activeMenuEnt = null;
           }
-          this.nucleusMenu.onStateChanged();
+
+          if (this.state.activeMenuName !== null) {
+            this.activeMenuEnt = this.createMenuForName(this.state.activeMenuName);
+            this.activeMenuEnt.setParent(this);
+          }
+
+          this.prevActiveMenuName = this.state.activeMenuName;
         }
-        else {
-          if (this.nucleusMenu) {
-            this.nucleusMenu.destroy();
-            this.nucleusMenu = null;
-          }
+
+        if (this.activeMenuEnt) {
+          this.activeMenuEnt.onStateChanged();
         }
 
         if (state.endoRetShowing && !this.endoRet) {
           let er = scene.add.image(state.cellX + 0, state.cellY + 3, 'endoret').setInteractive();
           er.on('pointerdown', () => {
             throb(scene, er);
-            // this.state.nucleusMenuShowing = !this.state.nucleusMenuShowing;
-            // this.onStateChanged();
+            this.state.activeMenuName = toggleOrChange(this.state.activeMenuName, 'er');
+            this.onStateChanged();
 
           });
           er.setScale(0.1);
@@ -369,7 +450,7 @@
           let nuc = scene.add.image(cx + 0, cy - 5, 'nuc').setInteractive();
           nuc.on('pointerdown', () => {
             throb(scene, nuc);
-            this.state.nucleusMenuShowing = !this.state.nucleusMenuShowing;
+            this.state.activeMenuName = toggleOrChange(this.state.activeMenuName, 'nucleus');
             this.onStateChanged();
 
           });
