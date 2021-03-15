@@ -68,6 +68,7 @@
       this.load.image('sugar', 'molecule.png');
       this.load.image('arrow', 'arrow.png');
       this.load.image('endoret', 'endoret.png');
+      this.load.image('golgi', 'golgi.png');
       this.load.image('particles/blue', 'particles/blue.png');
 
       this.load.audio('click', 'sounds/click.wav');
@@ -397,7 +398,7 @@
         }
 
         if (state.endoRetShowing && !this.endoRet) {
-          let er = scene.add.image(state.cellX + 0, state.cellY + 3, 'endoret').setInteractive();
+          let er = scene.add.image(state.cellX - 5, state.cellY + 0, 'endoret').setInteractive();
           er.on('pointerdown', () => {
             throb(scene, er);
             this.state.activeMenuName = toggleOrChange(this.state.activeMenuName, 'er');
@@ -447,7 +448,7 @@
           new Entity(mito).setParent(this);
         }
         {
-          let nuc = scene.add.image(cx + 0, cy - 5, 'nuc').setInteractive();
+          let nuc = scene.add.image(cx - 5, cy - 10, 'nuc').setInteractive();
           nuc.on('pointerdown', () => {
             throb(scene, nuc);
             this.state.activeMenuName = toggleOrChange(this.state.activeMenuName, 'nucleus');
@@ -457,6 +458,18 @@
           nuc.setScale(0.1 * globalScale);
           this.nucleus = new Entity(nuc);
           this.nucleus.setParent(this);
+        }
+        {
+          let golgi = scene.add.image(cx + 10, cy - 5, 'golgi').setInteractive();
+          golgi.on('pointerdown', () => {
+            throb(scene, golgi);
+            this.state.activeMenuName = toggleOrChange(this.state.activeMenuName, 'golgi');
+            this.onStateChanged();
+
+          });
+          golgi.setScale(0.1 * globalScale);
+          this.golgi = new Entity(golgi);
+          this.golgi.setParent(this);
         }
 
         this.onStateChanged();
