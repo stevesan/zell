@@ -68,10 +68,12 @@
       this.load.image('sugar', 'molecule.png');
       this.load.image('arrow', 'arrow.png');
       this.load.image('endoret', 'endoret.png');
+      this.load.image('ribosome', 'ribosome.png');
       this.load.image('golgi', 'golgi.png');
       this.load.image('particles/blue', 'particles/blue.png');
 
       this.load.audio('click', 'sounds/click.wav');
+      this.load.audio('create', 'sounds/create.wav');
       this.load.audio('powerup', 'sounds/powerup.wav');
       this.load.audio('bgmusic', 'music/ftl-title-theme.mp3');
     }
@@ -350,6 +352,7 @@
             label: () => 'Add Endoplasmic Reticulum (ER)',
             enabled: () => !this.state.endoRetShowing,
             onClick: () => {
+              this.scene.createSound.play();
               this.state.endoRetShowing = true;
               this.reportStateChange();
             }
@@ -357,6 +360,8 @@
         ];
       }
     }
+
+    const MAX_RIBOSOMES = 5;
 
     class EndoRetMenu extends BaseMenu {
       constructor(scene, state, reportStateChange) {
@@ -366,17 +371,33 @@
       getTitle() { return 'Endoplasmic Reticulum (ER)'; }
 
       getButtons() {
-        return [
+        console.assert(this.state.numRibosomes <= MAX_RIBOSOMES);
+
+        const btns = [
           {
             id: 'addRibos',
-            label: () => `Add Ribosome (${this.state.numRibosomes ?? 0}/5)`,
-            enabled: () => (this.state.numRibosomes ?? 0) < 5,
+            label: () => `Add Ribosome (${this.state.numRibosomes ?? 0}/${MAX_RIBOSOMES})`,
+            enabled: () => (this.state.numRibosomes ?? 0) < MAX_RIBOSOMES,
             onClick: () => {
+              this.scene.createSound.play();
               this.state.numRibosomes = (this.state.numRibosomes ?? 0) + 1;
               this.reportStateChange();
             }
           }
         ];
+        if (this.state.numRibosomes == MAX_RIBOSOMES) {
+          btns.push({
+            id: 'addCentros',
+            label: () => `Add Centrosomes`,
+            enabled: () => true,
+            onClick: () => {
+              this.scene.createSound.play();
+              this.state.numCentrosomes = (this.state.numCentrosomes ?? 0) + 1;
+              this.reportStateChange();
+            }
+          });
+        }
+        return btns;
       }
     }
 
@@ -437,6 +458,26 @@
         else if (!state.endoRetShowing && this.endoRet) {
           this.endoRet.destroy();
           this.endoRet = null;
+        }
+
+        const numRibos = state.numRibosomes ?? 0;
+        if (this.riboEnts === undefined) {
+          this.riboEnts = [];
+        }
+        for (let i = this.riboEnts.length; i < numRibos; i++) {
+          this.riboEnts.push(null);
+        }
+        for (let i = 0; i < this.riboEnts.length; i++) {
+          if (i < numRibos && this.riboEnts[i] === null) {
+            let ribo = scene.add.image(state.cellX - 10 + 2 * i, state.cellY + 2 * (i % 2), 'ribosome');
+            ribo.setScale(0.1);
+            this.riboEnts[i] = new Entity(ribo);
+            this.riboEnts[i].setParent(this);
+          }
+          else if (i >= numRibos && this.riboEnts[i] !== null) {
+            this.riboEnts[i].destroy();
+            this.riboEnts[i] = null;
+          }
         }
       }
 
@@ -523,6 +564,7 @@
 
       this.clickAudio = this.sound.add('click', { volume: 0.3 });
       this.powerupAudio = this.sound.add('powerup', { volume: 0.1 });
+      this.createSound = this.sound.add('create', { volume: 0.1 });
 
       createFuzz(this);
 
