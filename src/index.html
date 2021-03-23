@@ -3,6 +3,13 @@
 
 <head>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.52.0/dist/phaser-arcade-physics.min.js"></script>
+
+  <style>
+    @font-face {
+      font-family: ProggySquare;
+      src: url('../assets/ProggySquare.ttf');
+    }
+  </style>
 </head>
 
 <body>
@@ -271,6 +278,8 @@
       onStateChanged() {
         const state = this.state;
 
+        let depth = 1;
+
         let x = this.state.cellX;
         let y = this.state.cellY;
         x -= 40;
@@ -278,8 +287,9 @@
         const scale = 0.05;
 
         const textStyle = {
-          font: "32px Arial Black", fill: "#fff",
-          stroke: "#000", strokeThickness: 5
+          font: "48px ProggySquare", fill: "#fff",
+          stroke: "#000", strokeThickness: 0,
+          shadow: { offsetX: 3, offsetY: 3, stroke: false, fill: true }
         };
 
         const scene = this.scene;
@@ -301,12 +311,14 @@
               throb(scene, buttonEnt.gameObject, 1.05);
               button['onClick']();
             });
-            // text.on('pointerover', () => {
-            // buttonEnt.gameObject.setTint(0xfa0);
-            // });
-            // text.on('pointerout', () => {
-            // buttonEnt.gameObject.clearTint();
-            // });
+            text.on('pointerover', () => {
+              if (!button['enabled']()) return;
+              buttonEnt.gameObject.setTint(0xaaaaff);
+            });
+            text.on('pointerout', () => {
+              if (!button['enabled']()) return;
+              buttonEnt.gameObject.clearTint();
+            });
             buttonEnt = new Entity(text);
             buttonEnt.setParent(this);
             this.buttonEnts.set(button['id'], buttonEnt);
@@ -761,6 +773,8 @@
 
 </body>
 
-<h1>DO NOT SHARE!</h1>
+<div style="font-family: ProggySquare;">
+  <h1>PRIVATE PROTOTYPE - DO NOT SHARE</h1>
+</div>
 
 </html>
