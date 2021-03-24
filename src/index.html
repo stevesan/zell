@@ -25,25 +25,52 @@
       }
     }
 
+    class GameState {
+      constructor() {
+        this.numSugars = 0;
+        this.listeners = new Set();
+      }
+
+      addListener(listener) {
+        this.listeners.add(listener);
+      }
+
+      onChange() {
+        for (const l of this.listeners) {
+          l();
+        }
+      }
+    }
+
+    const currState = new GameState();
+
     class HudScene extends Phaser.Scene {
       constructor() {
         super({
           key: 'hud',
           active: true
         });
+        currState.addListener(() => { this.onStateChanged(); });
       }
 
       create() {
         const textStyle = {
-          font: "48px ProggySquare", fill: "#fff",
+          font: "42px ProggySquare", fill: "#afa",
           stroke: "#000", strokeThickness: 0,
-          shadow: { offsetX: 3, offsetY: 3, stroke: false, fill: true }
+          shadow: { offsetX: 2, offsetY: 2, stroke: false, fill: true }
         };
-
-        this.add.text(50, 50, "HHHHHHHHHHIIIIIIIIIII");
+        this.sugarText = this.add.text(50, 50, "", textStyle);
+        this.onStateChanged();
       }
 
       update(time, dtMs) {
+      }
+
+      onStateChanged() {
+        this.sugarText.text = 'SUGAR: ';
+        for (let i = 0; i < currState.numSugars; i++) {
+          this.sugarText.text += 'O';
+        }
       }
     }
 
@@ -269,7 +296,7 @@
         let y = 0.2;
         const dy = 0.05;
         const textStyle = {
-          font: "36px ProggySquare", fill: "#fff",
+          font: "42px ProggySquare", fill: "#fff",
           stroke: "#000", strokeThickness: 0,
           shadow: { offsetX: 2, offsetY: 2, stroke: false, fill: true }
         };
@@ -375,9 +402,11 @@
           {
             id: 'addRibos',
             label: () => `Add Ribosome (${this.state.numRibosomes ?? 0}/${MAX_RIBOSOMES})`,
-            enabled: () => (this.state.numRibosomes ?? 0) < MAX_RIBOSOMES,
+            enabled: () => (this.state.numRibosomes ?? 0) < MAX_RIBOSOMES && currState.numSugars > 0,
             onClick: () => {
               this.state.numRibosomes = (this.state.numRibosomes ?? 0) + 1;
+              currState.numSugars--;
+              currState.onChange();
               this.reportStateChange();
             }
           }
@@ -566,7 +595,7 @@
         }
 
         {
-          let backBtn = scene.add.image(cx - 45, cy - 20, 'back').setInteractive();
+          let backBtn = scene.add.image(cx - 45, cy + 20, 'back').setInteractive();
           backBtn.on('pointerdown', () => {
             throb(scene, backBtn);
             this.scene.enterMoveMode();
@@ -680,6 +709,9 @@
             sugar.destroy();
             this.powerupAudio.play();
             this.cameras.main.shake(400, 0.005);
+
+            currState.numSugars++;
+            currState.onChange();
           });
         }
 
