@@ -25,23 +25,27 @@
       }
     }
 
-    var config = {
-      type: Phaser.AUTO,
-      width: 1280,
-      height: 720,
-      physics: {
-        default: 'arcade',
-        arcade: {
-          gravity: { x: 0, y: 0 },
-          debug: false,
-        }
-      },
-      scene: {
-        preload: preload,
-        create: create,
-        update: update
+    class HudScene extends Phaser.Scene {
+      constructor() {
+        super({
+          key: 'hud',
+          active: true
+        });
       }
-    };
+
+      create() {
+        const textStyle = {
+          font: "48px ProggySquare", fill: "#fff",
+          stroke: "#000", strokeThickness: 0,
+          shadow: { offsetX: 3, offsetY: 3, stroke: false, fill: true }
+        };
+
+        this.add.text(50, 50, "HHHHHHHHHHIIIIIIIIIII");
+      }
+
+      update(time, dtMs) {
+      }
+    }
 
     function throb(scene, image, amount) {
       if (amount === undefined) {
@@ -62,28 +66,6 @@
           image.__throbbing = false;
         }
       });
-    }
-
-    var game = new Phaser.Game(config);
-
-    function preload() {
-      this.load.setBaseURL('../assets');
-      this.load.image('back', 'back.png');
-      this.load.image('cell', 'cell.png');
-      this.load.image('mito', 'mito.png');
-      this.load.image('nuc', 'nuc.png');
-      this.load.image('fuzz', 'fuzz.png');
-      this.load.image('sugar', 'molecule.png');
-      this.load.image('arrow', 'arrow.png');
-      this.load.image('endoret', 'endoret.png');
-      this.load.image('ribosome', 'ribosome.png');
-      this.load.image('golgi', 'golgi.png');
-      this.load.image('particles/blue', 'particles/blue.png');
-
-      this.load.audio('click', 'sounds/click.wav');
-      this.load.audio('create', 'sounds/create.wav');
-      this.load.audio('powerup', 'sounds/powerup.wav');
-      this.load.audio('bgmusic', 'music/ftl-title-theme.mp3');
     }
 
     class Entity {
@@ -620,155 +602,204 @@
       }
     }
 
-    function create() {
-      this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
-      this.sound.add('bgmusic', { loop: true, volume: 0.2 }).play();
-
-      this.clickAudio = this.sound.add('click', { volume: 0.3 });
-      this.powerupAudio = this.sound.add('powerup', { volume: 0.1 });
-      this.createSound = this.sound.add('create', { volume: 0.1 });
-
-      createFuzz(this);
-
-      this.rootEntity = new Entity(null);
-
-      var cellImage = this.physics.add.image(config.width / 2, config.height / 2, 'cell');
-      cellImage.setCircle(32);
-      cellImage.setVelocity(1, 1);
-      cellImage.setBounce(1, 1);
-      cellImage.setCollideWorldBounds(true);
-
-      let cell = new CellEntity(cellImage);
-      selectedCellEntity = cell;
-      this.cameras.main.startFollow(cellImage);
-      this.cameras.main.setLerp(0.1);
-      cell.setParent(this.rootEntity);
-
-      for (let i = 0; i < 5; i++) {
-        var sugarImage = this.physics.add.image(Math.random() * config.width, Math.random() * config.height, 'sugar');
-        sugarImage.setCircle(32);
-        sugarImage.setVelocity((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50);
-        sugarImage.setAngularVelocity((Math.random() - 0.5) * 180);
-        sugarImage.setBounce(1, 1);
-        sugarImage.setCollideWorldBounds(true);
-        let sugar = new SugarEntity(sugarImage);
-        sugar.setParent(this.rootEntity);
-
-        this.physics.add.overlap(sugarImage, cellImage, (sugarImage, cellImage) => {
-          explosionEmitter.explode(100, sugarImage.x, sugarImage.y);
-          sugar.destroy();
-          this.powerupAudio.play();
-          this.cameras.main.shake(400, 0.005);
+    class MainScene extends Phaser.Scene {
+      constructor() {
+        super({
+          key: 'main',
+          active: true,
+          physics: {
+            default: 'arcade',
+            arcade: {
+              gravity: { x: 0, y: 0 },
+              debug: false,
+            }
+          },
         });
       }
+      preload() {
+        console.log('preload called');
+        console.trace();
+        this.load.setBaseURL('../assets');
+        this.load.image('back', 'back.png');
+        this.load.image('cell', 'cell.png');
+        this.load.image('mito', 'mito.png');
+        this.load.image('nuc', 'nuc.png');
+        this.load.image('fuzz', 'fuzz.png');
+        this.load.image('sugar', 'molecule.png');
+        this.load.image('arrow', 'arrow.png');
+        this.load.image('endoret', 'endoret.png');
+        this.load.image('ribosome', 'ribosome.png');
+        this.load.image('golgi', 'golgi.png');
+        this.load.image('particles/blue', 'particles/blue.png');
 
-      var particles = this.add.particles('particles/blue');
-      particles.depth = 1;
-      var emitter = particles.createEmitter({
-        speed: 500,
-        lifespan: 1000,
-        scale: { start: 1, end: 0 },
-        blendMode: 'ADD'
-      });
-      emitter.stop();
+        this.load.audio('click', 'sounds/click.wav');
+        this.load.audio('create', 'sounds/create.wav');
+        this.load.audio('powerup', 'sounds/powerup.wav');
+        this.load.audio('bgmusic', 'music/ftl-title-theme.mp3');
+      }
 
-      explosionEmitter = emitter;
+      create() {
+        this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+        this.sound.add('bgmusic', { loop: true, volume: 0.2 }).play();
 
-      clickEmitter = particles.createEmitter({
-        speed: 200,
-        lifespan: 250,
-        scale: { start: 1, end: 0 },
-        blendMode: 'ADD'
-      });
-      clickEmitter.stop();
+        this.clickAudio = this.sound.add('click', { volume: 0.3 });
+        this.powerupAudio = this.sound.add('powerup', { volume: 0.1 });
+        this.createSound = this.sound.add('create', { volume: 0.1 });
 
-      let getObjectsUnderPointer = (pointer) => {
-        return this.physics.overlapRect(pointer.worldX, pointer.worldY, 1, 1);
-      };
+        createFuzz(this);
 
-      let prevHoveredEnts = new Set();
+        this.rootEntity = new Entity(null);
 
-      this.input.on('pointermove', (pointer) => {
-        let hoveredEnts = new Set();
-        for (let body of getObjectsUnderPointer(pointer)) {
-          if (body.gameObject.entity) {
-            hoveredEnts.add(body.gameObject.entity);
+        var cellImage = this.physics.add.image(config.width / 2, config.height / 2, 'cell');
+        cellImage.setCircle(32);
+        cellImage.setVelocity(1, 1);
+        cellImage.setBounce(1, 1);
+        cellImage.setCollideWorldBounds(true);
+
+        let cell = new CellEntity(cellImage);
+        selectedCellEntity = cell;
+        this.cameras.main.startFollow(cellImage);
+        this.cameras.main.setLerp(0.1);
+        cell.setParent(this.rootEntity);
+
+        for (let i = 0; i < 5; i++) {
+          var sugarImage = this.physics.add.image(Math.random() * config.width, Math.random() * config.height, 'sugar');
+          sugarImage.setCircle(32);
+          sugarImage.setVelocity((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50);
+          sugarImage.setAngularVelocity((Math.random() - 0.5) * 180);
+          sugarImage.setBounce(1, 1);
+          sugarImage.setCollideWorldBounds(true);
+          let sugar = new SugarEntity(sugarImage);
+          sugar.setParent(this.rootEntity);
+
+          this.physics.add.overlap(sugarImage, cellImage, (sugarImage, cellImage) => {
+            explosionEmitter.explode(100, sugarImage.x, sugarImage.y);
+            sugar.destroy();
+            this.powerupAudio.play();
+            this.cameras.main.shake(400, 0.005);
+          });
+        }
+
+        var particles = this.add.particles('particles/blue');
+        particles.depth = 1;
+        var emitter = particles.createEmitter({
+          speed: 500,
+          lifespan: 1000,
+          scale: { start: 1, end: 0 },
+          blendMode: 'ADD'
+        });
+        emitter.stop();
+
+        explosionEmitter = emitter;
+
+        clickEmitter = particles.createEmitter({
+          speed: 200,
+          lifespan: 250,
+          scale: { start: 1, end: 0 },
+          blendMode: 'ADD'
+        });
+        clickEmitter.stop();
+
+        let getObjectsUnderPointer = (pointer) => {
+          return this.physics.overlapRect(pointer.worldX, pointer.worldY, 1, 1);
+        };
+
+        let prevHoveredEnts = new Set();
+
+        this.input.on('pointermove', (pointer) => {
+          let hoveredEnts = new Set();
+          for (let body of getObjectsUnderPointer(pointer)) {
+            if (body.gameObject.entity) {
+              hoveredEnts.add(body.gameObject.entity);
+            }
           }
-        }
 
-        for (let ent of hoveredEnts) {
-          if (!prevHoveredEnts.has(ent)) {
-            ent.onPointerIn();
+          for (let ent of hoveredEnts) {
+            if (!prevHoveredEnts.has(ent)) {
+              ent.onPointerIn();
+            }
           }
-        }
 
-        for (let ent of prevHoveredEnts) {
-          if (!hoveredEnts.has(ent)) {
-            ent.onPointerOut();
+          for (let ent of prevHoveredEnts) {
+            if (!hoveredEnts.has(ent)) {
+              ent.onPointerOut();
+            }
           }
-        }
 
-        prevHoveredEnts = hoveredEnts;
-      });
+          prevHoveredEnts = hoveredEnts;
+        });
 
-      // Scene-wide click handler
-      this.input.on('pointerdown', (pointer) => {
-        let x = pointer.worldX;
-        let y = pointer.worldY;
-        console.log(`clicked @${x}, ${y}`);
-        if (!this.isCellMode()) {
-          clickEmitter.explode(30, x, y);
-        }
-        this.clickAudio.play();
-
-        let clickedAny = false;
-        for (let body of getObjectsUnderPointer(pointer)) {
-          if (body.gameObject.entity) {
-            body.gameObject.entity.onClick(this);
-            clickedAny = true;
-          }
-        }
-
-        if (!clickedAny) {
-          // Clicked bg
+        // Scene-wide click handler
+        this.input.on('pointerdown', (pointer) => {
+          let x = pointer.worldX;
+          let y = pointer.worldY;
+          console.log(`clicked @${x}, ${y}`);
           if (!this.isCellMode()) {
-            cell.commandToWorldPos(x, y);
+            clickEmitter.explode(30, x, y);
           }
-        }
-      });
+          this.clickAudio.play();
 
-      this.enterCellMode = (cellEnt) => {
-        this.cameras.main.zoomTo(12, 1000, Phaser.Math.Easing.Cubic.In, true);
-        if (this.mode == "cell") return;
-        this.mode = "cell";
-        if (!this.cellModeState) {
-          this.cellModeState = {};
-        }
-        this.cellMode = new CellMode(this, cellEnt, this.cellModeState);
-      };
+          let clickedAny = false;
+          for (let body of getObjectsUnderPointer(pointer)) {
+            if (body.gameObject.entity) {
+              body.gameObject.entity.onClick(this);
+              clickedAny = true;
+            }
+          }
 
-      this.enterMoveMode = () => {
-        if (this.mode == "move") return;
-        this.mode = "move";
-        this.cameras.main.setBackgroundColor("#221111")
-        this.cameras.main.zoomTo(1, 1000, Phaser.Math.Easing.Quartic.Out, true);
-        if (this.cellMode) {
-          this.cellMode.destroy();
-          this.cellMode = null;
-        }
-      };
+          if (!clickedAny) {
+            // Clicked bg
+            if (!this.isCellMode()) {
+              cell.commandToWorldPos(x, y);
+            }
+          }
+        });
 
-      this.isCellMode = () => { return this.mode == 'cell'; };
+        this.enterCellMode = (cellEnt) => {
+          this.cameras.main.zoomTo(12, 1000, Phaser.Math.Easing.Cubic.In, true);
+          if (this.mode == "cell") return;
+          this.mode = "cell";
+          if (!this.cellModeState) {
+            this.cellModeState = {};
+          }
+          this.cellMode = new CellMode(this, cellEnt, this.cellModeState);
+        };
 
-      this.enterMoveMode();
+        this.enterMoveMode = () => {
+          if (this.mode == "move") return;
+          this.mode = "move";
+          this.cameras.main.setBackgroundColor("#221111")
+          this.cameras.main.zoomTo(1, 1000, Phaser.Math.Easing.Quartic.Out, true);
+          if (this.cellMode) {
+            this.cellMode.destroy();
+            this.cellMode = null;
+          }
+        };
+
+        this.isCellMode = () => { return this.mode == 'cell'; };
+
+        this.enterMoveMode();
+      }
+
+      update(time, dtMs) {
+        this.rootEntity.update(dtMs);
+        updateFuzzes(this, time, dtMs);
+      }
     }
 
+    var config = {
+      type: Phaser.AUTO,
+      width: 1280,
+      height: 720,
+      scene: [
+        MainScene,
+        HudScene,
+      ]
+    };
 
-    function update(time, dtMs) {
-      this.rootEntity.update(dtMs);
+    var game = new Phaser.Game(config);
 
-      updateFuzzes(this, time, dtMs);
-    }
+
   </script>
 
 </body>
