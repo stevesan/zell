@@ -181,6 +181,8 @@ class MainScene extends Phaser.Scene {
     this.isCellMode = () => { return this.mode == 'cell'; };
 
     this.enterMoveMode();
+
+    this.tutorial = new TutorialText(this.scene.get('hud'));
   }
 
   enterCellMode() {
