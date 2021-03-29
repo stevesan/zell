@@ -178,30 +178,32 @@ class MainScene extends Phaser.Scene {
       }
     });
 
-    this.enterCellMode = (cellEnt) => {
-      this.cameras.main.zoomTo(12, 1000, Phaser.Math.Easing.Cubic.In, true);
-      if (this.mode == "cell") return;
-      this.mode = "cell";
-      if (!this.cellModeState) {
-        this.cellModeState = {};
-      }
-      this.cellMode = new CellMode(this, this.scene.get('hud'), cellEnt, this.cellModeState);
-    };
-
-    this.enterMoveMode = () => {
-      if (this.mode == "move") return;
-      this.mode = "move";
-      this.cameras.main.setBackgroundColor("#221111")
-      this.cameras.main.zoomTo(1, 1000, Phaser.Math.Easing.Quartic.Out, true);
-      if (this.cellMode) {
-        this.cellMode.destroy();
-        this.cellMode = null;
-      }
-    };
-
     this.isCellMode = () => { return this.mode == 'cell'; };
 
     this.enterMoveMode();
+  }
+
+  enterCellMode() {
+    this.cameras.main.zoomTo(12, 1000, Phaser.Math.Easing.Cubic.In, true);
+    this.cameras.main.followOffset.set(20, 0);
+    if (this.mode == "cell") return;
+    this.mode = "cell";
+    if (!this.cellModeState) {
+      this.cellModeState = {};
+    }
+    this.cellMode = new CellMode(this, this.scene.get('hud'), this.selectedCellEntity, this.cellModeState);
+  }
+
+  enterMoveMode() {
+    if (this.mode == "move") return;
+    this.mode = "move";
+    this.cameras.main.setBackgroundColor("#221111")
+    this.cameras.main.zoomTo(1, 1000, Phaser.Math.Easing.Quartic.Out, true);
+    this.cameras.main.followOffset.set(0, 0);
+    if (this.cellMode) {
+      this.cellMode.destroy();
+      this.cellMode = null;
+    }
   }
 
   update(time, dtMs) {

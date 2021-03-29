@@ -15,16 +15,14 @@ class BaseMenu extends Entity {
   onStateChanged() {
     const state = this.state;
 
-    let depth = 1;
-
     let cam = this.scene.cameras.main;
     const W = cam.displayWidth;
     const H = cam.displayHeight;
-    let x = 0.1;
+    let x = 0.05;
     let y = 0.2;
     const dy = 0.05;
     const textStyle = {
-      font: "42px ProggySquare", fill: "#fff",
+      font: "36px ProggySquare", fill: "#fff",
       stroke: "#000", strokeThickness: 0,
       shadow: { offsetX: 2, offsetY: 2, stroke: false, fill: true }
     };
@@ -41,7 +39,7 @@ class BaseMenu extends Entity {
       y += dy;
       let buttonEnt = this.buttonEnts.get(button['id']);
       if (!buttonEnt) {
-        const text = scene.add.text((x + 0.02) * W, y * H, '', textStyle);
+        const text = scene.add.text(x * W, y * H, '', textStyle);
         text.on('pointerdown', () => {
           throb(scene, buttonEnt.gameObject, 1.05);
           button['onClick']();
