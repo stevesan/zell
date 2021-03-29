@@ -1,13 +1,4 @@
 
-function toggleOrChange(currVal, goalVal) {
-  if (currVal == goalVal) {
-    return null;
-  }
-  else {
-    return goalVal;
-  }
-}
-
 class GameState {
   constructor() {
     this.numSugars = 0;
@@ -55,27 +46,6 @@ class HudScene extends Phaser.Scene {
       this.sugarText.text += 'O';
     }
   }
-}
-
-function throb(scene, image, amount) {
-  if (amount === undefined) {
-    amount = 1.2;
-  }
-  if (image.__throbbing) return;
-  image.__throbbing = true;
-  const origScale = image.scale;
-  image.setScale(origScale * amount);
-  scene.tweens.add({
-    targets: image,
-    scale: origScale,
-    ease: 'Quadratic',
-    duration: 200,
-    delay: 0,
-    repeat: 0,
-    onComplete: () => {
-      image.__throbbing = false;
-    }
-  });
 }
 
 class Entity {
@@ -168,13 +138,6 @@ class SugarEntity extends Entity {
 
 const MAX_CELL_SPEED = 300;
 
-// Gross
-let imageWasJustClicked = false;
-
-let explosionEmitter = null;
-let clickEmitter = null;
-
-let pointerObject = null;
 let selectedCellEntity = null;
 
 class CellEntity extends Entity {
@@ -592,10 +555,7 @@ class CellMode extends Entity {
   }
 }
 
-const worldWidth = 2000;
-const worldHeight = 2000;
-
-function createFuzz(scene) {
+function createFuzz(scene, worldWidth, worldHeight) {
   scene.fuzzes = [];
   for (let i = 0; i < 100; i++) {
     let x = worldWidth * Math.random();
@@ -652,6 +612,9 @@ class MainScene extends Phaser.Scene {
   }
 
   create() {
+    const worldWidth = 2000;
+    const worldHeight = 2000;
+
     this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
     this.sound.add('bgmusic', { loop: true, volume: 0.2 }).play();
 
@@ -659,7 +622,7 @@ class MainScene extends Phaser.Scene {
     this.powerupAudio = this.sound.add('powerup', { volume: 0.1 });
     this.createSound = this.sound.add('create', { volume: 0.1 });
 
-    createFuzz(this);
+    createFuzz(this, worldWidth, worldHeight);
 
     this.rootEntity = new Entity(null);
 
@@ -686,7 +649,7 @@ class MainScene extends Phaser.Scene {
       sugar.setParent(this.rootEntity);
 
       this.physics.add.overlap(sugarImage, cellImage, (sugarImage, cellImage) => {
-        explosionEmitter.explode(100, sugarImage.x, sugarImage.y);
+        this.explosionEmitter.explode(100, sugarImage.x, sugarImage.y);
         sugar.destroy();
         this.powerupAudio.play();
         this.cameras.main.shake(400, 0.005);
@@ -706,15 +669,15 @@ class MainScene extends Phaser.Scene {
     });
     emitter.stop();
 
-    explosionEmitter = emitter;
+    this.explosionEmitter = emitter;
 
-    clickEmitter = particles.createEmitter({
+    this.clickEmitter = particles.createEmitter({
       speed: 200,
       lifespan: 250,
       scale: { start: 1, end: 0 },
       blendMode: 'ADD'
     });
-    clickEmitter.stop();
+    this.clickEmitter.stop();
 
     let getObjectsUnderPointer = (pointer) => {
       return this.physics.overlapRect(pointer.worldX, pointer.worldY, 1, 1);
@@ -751,7 +714,7 @@ class MainScene extends Phaser.Scene {
       let y = pointer.worldY;
       console.log(`clicked @${x}, ${y}`);
       if (!this.isCellMode()) {
-        clickEmitter.explode(30, x, y);
+        this.clickEmitter.explode(30, x, y);
       }
       this.clickAudio.play();
 
