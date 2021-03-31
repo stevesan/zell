@@ -1,9 +1,11 @@
 
 class TutorialText extends Entity {
-  constructor(scene) {
+  constructor(scene, mainScene) {
     super(null);
     this.scene = scene;
-    currState.addListener(() => { this.onStateChanged(); });
+    this.mainScene = mainScene;
+    currState.addListener(() => this.onStateChanged());
+    this.mainScene.addListener(() => this.onStateChanged());
 
     let cam = this.scene.cameras.main;
     const W = cam.displayWidth;
@@ -14,7 +16,8 @@ class TutorialText extends Entity {
     const textStyle = {
       font: "36px ProggySquare", fill: "#fff",
       stroke: "#000", strokeThickness: 0,
-      shadow: { offsetX: 2, offsetY: 2, stroke: false, fill: true }
+      shadow: { offsetX: 2, offsetY: 2, stroke: false, fill: true },
+      wordWrap: { width: 450, useAdvancedWrap: true }
     };
 
     this.mainText = new Entity(this.scene.add.text(x, y,
@@ -32,22 +35,39 @@ class TutorialText extends Entity {
     this.bgRect.gameObject.setOrigin(1, 0);
     this.bgRect.gameObject.depth = 0;
 
+    this.onStateChanged();
+
+    window.__setTutorialText = (x) => this.setText(x);
   }
 
   setText(text) {
     const textObj = this.mainText.gameObject;
     textObj.text = text;
     const bgObj = this.bgRect.gameObject;
+    bgObj.setSize(
+      textObj.width + 2 * this.halfPad,
+      textObj.height + 2 * this.halfPad);
+    // For some reason, need to call this each time
     bgObj.setOrigin(1, 0);
-    bgObj.width = textObj.width + 2 * this.halfPad;
-    bgObj.height = textObj.height + 2 * this.halfPad;
   }
 
   update() {
-    this.setText('test \n test\n fdsjkflsdjfkldsjfklsd');
-
+    // this.setText('test \n test\n fdsjkflsdjfkldsjfklsd');
   }
 
   onStateChanged() {
+    if (!currState.builtER) {
+      if (currState.numSugars == 0) {
+        this.setText('Tap the sugar to eat it. Go on. You know you want to.');
+      }
+      else {
+        if (!this.mainScene.isCellMode()) {
+          this.setText('Yum! Now click your cell to zoom in.');
+        }
+        else {
+          this.setText('Now tap the nucleus. It’s just right there.');
+        }
+      }
+    }
   }
 }

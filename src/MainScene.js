@@ -34,7 +34,19 @@ class MainScene extends Phaser.Scene {
         }
       },
     });
+    this.listeners = new Set();
   }
+
+  callListeners() {
+    for (const l of this.listeners) {
+      l();
+    }
+  }
+
+  addListener(listener) {
+    this.listeners.add(listener);
+  }
+
   preload() {
     this.load.setBaseURL('../assets');
     this.load.image('back', 'back.png');
@@ -182,7 +194,7 @@ class MainScene extends Phaser.Scene {
 
     this.enterMoveMode();
 
-    this.tutorial = new TutorialText(this.scene.get('hud'));
+    this.tutorial = new TutorialText(this.scene.get('hud'), this);
     this.tutorial.setParent(this.rootEntity);
   }
 
@@ -195,6 +207,7 @@ class MainScene extends Phaser.Scene {
       this.cellModeState = {};
     }
     this.cellMode = new CellMode(this, this.scene.get('hud'), this.selectedCellEntity, this.cellModeState);
+    this.callListeners();
   }
 
   enterMoveMode() {
@@ -207,6 +220,7 @@ class MainScene extends Phaser.Scene {
       this.cellMode.destroy();
       this.cellMode = null;
     }
+    this.callListeners();
   }
 
   update(time, dtMs) {

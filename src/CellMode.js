@@ -1,6 +1,5 @@
 
 class CellMode extends Entity {
-
   createMenuForName(name) {
     if (name == 'nucleus') {
       return new NucleusMenu(this.hudScene, this.state, () => this.onStateChanged());
@@ -41,7 +40,7 @@ class CellMode extends Entity {
       this.activeMenuEnt.onStateChanged();
     }
 
-    if (state.endoRetShowing && !this.endoRet) {
+    if (currState.builtER && !this.endoRet) {
       scene.createSound.play();
       let er = scene.add.image(state.cellX - 5, state.cellY + 0, 'endoret').setInteractive();
       er.on('pointerdown', () => {
@@ -54,7 +53,7 @@ class CellMode extends Entity {
       this.endoRet = new Entity(er);
       this.endoRet.setParent(this);
     }
-    else if (!state.endoRetShowing && this.endoRet) {
+    else if (!currState.builtER && this.endoRet) {
       this.endoRet.destroy();
       this.endoRet = null;
     }
@@ -120,6 +119,8 @@ class CellMode extends Entity {
 
   constructor(scene, hudScene, cellEnt, state) {
     super(null);
+    currState.addListener(() => this.onStateChanged());
+
     this.scene = scene;
     this.hudScene = hudScene;
     this.cellEntity = cellEnt;

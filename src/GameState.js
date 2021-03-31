@@ -1,6 +1,8 @@
+
 class GameState {
   constructor() {
     this.numSugars = 0;
+    this.builtER = false;
     this.listeners = new Set();
   }
 

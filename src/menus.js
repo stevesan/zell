@@ -102,9 +102,9 @@ class NucleusMenu extends BaseMenu {
       {
         id: 'addER',
         label: () => 'Add Endoplasmic Reticulum (ER)',
-        enabled: () => !this.state.endoRetShowing,
+        enabled: () => !currState.builtER,
         onClick: () => {
-          this.state.endoRetShowing = true;
+          currState.builtER = true;
           this.reportStateChange();
         }
       }
