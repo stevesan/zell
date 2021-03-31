@@ -7,6 +7,11 @@ class HudScene extends Phaser.Scene {
     currState.addListener(() => { this.onStateChanged(); });
   }
 
+  preload() {
+    this.load.setBaseURL('../assets');
+    this.load.audio('click', 'sounds/click.wav');
+  }
+
   create() {
     const textStyle = {
       font: "42px ProggySquare", fill: "#8f8",
@@ -14,6 +19,7 @@ class HudScene extends Phaser.Scene {
       shadow: { offsetX: 2, offsetY: 2, stroke: false, fill: true }
     };
     this.sugarText = this.add.text(50, 50, "", textStyle);
+    this.clickAudio = this.sound.add('click', { volume: 0.3 });
     this.onStateChanged();
   }
 

@@ -40,9 +40,13 @@ class BaseMenu extends Entity {
       let buttonEnt = this.buttonEnts.get(button['id']);
       if (!buttonEnt) {
         const text = scene.add.text(x * W, y * H, '', textStyle);
+        text.setInteractive();
         text.on('pointerdown', () => {
           throb(scene, buttonEnt.gameObject, 1.05);
-          button['onClick']();
+          scene.clickAudio.play();
+          if (button['enabled']()) {
+            button['onClick']();
+          }
         });
         text.on('pointerover', () => {
           if (!button['enabled']()) return;
@@ -58,12 +62,8 @@ class BaseMenu extends Entity {
       }
       if (!button['enabled']()) {
         buttonEnt.gameObject.setTint(0x888888);
-        buttonEnt.gameObject.disableInteractive();
       }
-      else {
-        buttonEnt.gameObject.setInteractive();
-      }
-      buttonEnt.gameObject.setText(`> ${button['label']()}`);
+      buttonEnt.gameObject.setText(`* ${button['label']()}`);
     }
   }
 }
