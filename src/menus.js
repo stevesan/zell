@@ -18,7 +18,7 @@ class BaseMenu extends Entity {
     let cam = this.scene.cameras.main;
     const W = cam.displayWidth;
     const H = cam.displayHeight;
-    let x = 0.05;
+    let x = 0.03;
     let y = 0.2;
     const dy = 0.05;
     const textStyle = {

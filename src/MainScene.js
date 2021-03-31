@@ -183,6 +183,7 @@ class MainScene extends Phaser.Scene {
     this.enterMoveMode();
 
     this.tutorial = new TutorialText(this.scene.get('hud'));
+    this.tutorial.setParent(this.rootEntity);
   }
 
   enterCellMode() {
