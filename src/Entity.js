@@ -1,5 +1,6 @@
 class Entity {
   constructor(gameObject) {
+    this.destroyed = false;
     this.gameObject = gameObject;
     if (gameObject !== null) {
       this.gameObject.entity = this;
@@ -52,6 +53,8 @@ class Entity {
       child.destroy();
     }
     this.childNodes.clear();
+
+    this.destroyed = true;
   }
 
   onClick() {

@@ -2,51 +2,52 @@
 class CellMode extends Entity {
   createMenuForName(name) {
     if (name == 'nucleus') {
-      return new NucleusMenu(this.hudScene, this.state, () => this.onStateChanged());
+      return new NucleusMenu(this.hudScene, currState);
     }
     else if (name == 'er') {
-      return new EndoRetMenu(this.hudScene, this.state, () => this.onStateChanged());
+      return new EndoRetMenu(this.hudScene, currState);
     }
     else if (name == 'golgi') {
-      return new GolgiMenu(this.hudScene, this.state, () => this.onStateChanged());
+      return new GolgiMenu(this.hudScene, currState);
     }
     else if (name == 'mito') {
-      return new MitoMenu(this.hudScene, this.state, () => this.onStateChanged());
+      return new MitoMenu(this.hudScene, currState);
     }
     else {
       throw `Bad menu name: ${name}`;
     }
   }
 
+  destroy() {
+    super.destroy();
+    currState.removeListener(this);
+  }
+
   onStateChanged() {
-    const state = this.state;
+    console.assert(!this.destroyed);
     const scene = this.scene;
 
-    if (this.state.activeMenuName != this.prevActiveMenuName) {
+    if (currState.activeMenuName != this.prevActiveMenuName) {
       if (this.activeMenuEnt) {
         this.activeMenuEnt.destroy();
         this.activeMenuEnt = null;
       }
 
-      if (this.state.activeMenuName !== null) {
-        this.activeMenuEnt = this.createMenuForName(this.state.activeMenuName);
+      if (currState.activeMenuName !== null) {
+        this.activeMenuEnt = this.createMenuForName(currState.activeMenuName);
         this.activeMenuEnt.setParent(this);
       }
 
-      this.prevActiveMenuName = this.state.activeMenuName;
-    }
-
-    if (this.activeMenuEnt) {
-      this.activeMenuEnt.onStateChanged();
+      this.prevActiveMenuName = currState.activeMenuName;
     }
 
     if (currState.builtER && !this.endoRet) {
       scene.createSound.play();
-      let er = scene.add.image(state.cellX - 5, state.cellY + 0, 'endoret').setInteractive();
+      let er = scene.add.image(this.cellX - 5, this.cellY + 0, 'endoret').setInteractive();
       er.on('pointerdown', () => {
         throb(scene, er);
-        this.state.activeMenuName = toggleOrChange(this.state.activeMenuName, 'er');
-        this.onStateChanged();
+        currState.activeMenuName = toggleOrChange(currState.activeMenuName, 'er');
+        currState.onChange();
 
       });
       er.setScale(0.1);
@@ -58,7 +59,7 @@ class CellMode extends Entity {
       this.endoRet = null;
     }
 
-    const numRibos = state.numRibosomes ?? 0;
+    const numRibos = currState.numRibosomes ?? 0;
     if (this.riboEnts === undefined) {
       this.riboEnts = [];
     }
@@ -69,7 +70,7 @@ class CellMode extends Entity {
     for (let i = 0; i < this.riboEnts.length; i++) {
       if (i < numRibos && this.riboEnts[i] === null) {
         createdRibos = true;
-        let ribo = scene.add.image(state.cellX - 10 + 2 * i, state.cellY + 3 * (i % 2) + 2, 'ribosome');
+        let ribo = scene.add.image(this.cellX - 10 + 2 * i, this.cellY + 3 * (i % 2) + 2, 'ribosome');
         ribo.setScale(0.1);
         this.riboEnts[i] = new Entity(ribo);
         this.riboEnts[i].setParent(this);
@@ -92,11 +93,11 @@ class CellMode extends Entity {
       scene.createSound.play();
     }
 
-    const numCentros = this.state.numCentrosomes ?? 0;
+    const numCentros = currState.numCentrosomes ?? 0;
     const prevNumCentros = this.prevNumCentros ?? 0;
     if (numCentros > prevNumCentros) {
       scene.createSound.play();
-      let img = scene.add.image(state.cellX, state.cellY, 'ribosome');
+      let img = scene.add.image(this.cellX, this.cellY, 'ribosome');
       img.setScale(0.1);
       img.setTint(0x000);
       if (this.centroEnt) {
@@ -107,7 +108,7 @@ class CellMode extends Entity {
 
       scene.tweens.add({
         targets: img,
-        x: state.cellX + 30,
+        x: this.cellX + 30,
         ease: 'Quadratic',
         duration: 1000,
         delay: 0,
@@ -117,19 +118,18 @@ class CellMode extends Entity {
     this.prevNumCentros = numCentros;
   }
 
-  constructor(scene, hudScene, cellEnt, state) {
+  constructor(scene, hudScene, cellEnt) {
     super(null);
-    currState.addListener(() => this.onStateChanged());
+    currState.addListener(this, () => this.onStateChanged());
 
     this.scene = scene;
     this.hudScene = hudScene;
     this.cellEntity = cellEnt;
-    this.state = state;
 
     let globalScale = 1.0;
 
-    this.state.cellX = cellEnt.gameObject.x;
-    this.state.cellY = cellEnt.gameObject.y;
+    this.cellX = cellEnt.gameObject.x;
+    this.cellY = cellEnt.gameObject.y;
 
     let cx = cellEnt.gameObject.x;
     let cy = cellEnt.gameObject.y;
@@ -139,8 +139,8 @@ class CellMode extends Entity {
       mito.setScale(0.1 * globalScale);
       mito.on('pointerdown', () => {
         throb(scene, mito);
-        this.state.activeMenuName = toggleOrChange(this.state.activeMenuName, 'mito');
-        this.onStateChanged();
+        currState.activeMenuName = toggleOrChange(currState.activeMenuName, 'mito');
+        currState.onChange();
       });
       new Entity(mito).setParent(this);
     }
@@ -148,9 +148,8 @@ class CellMode extends Entity {
       let nuc = scene.add.image(cx - 5, cy - 10, 'nuc').setInteractive();
       nuc.on('pointerdown', () => {
         throb(scene, nuc);
-        this.state.activeMenuName = toggleOrChange(this.state.activeMenuName, 'nucleus');
-        this.onStateChanged();
-
+        currState.activeMenuName = toggleOrChange(currState.activeMenuName, 'nucleus');
+        currState.onChange();
       });
       nuc.setScale(0.1 * globalScale);
       this.nucleus = new Entity(nuc);
@@ -160,8 +159,8 @@ class CellMode extends Entity {
       let golgi = scene.add.image(cx + 10, cy - 5, 'golgi').setInteractive();
       golgi.on('pointerdown', () => {
         throb(scene, golgi);
-        this.state.activeMenuName = toggleOrChange(this.state.activeMenuName, 'golgi');
-        this.onStateChanged();
+        currState.activeMenuName = toggleOrChange(currState.activeMenuName, 'golgi');
+        currState.onChange();
       });
       golgi.setScale(0.1 * globalScale);
       this.golgi = new Entity(golgi);

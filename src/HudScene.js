@@ -4,7 +4,12 @@ class HudScene extends Phaser.Scene {
       key: 'hud',
       active: true
     });
-    currState.addListener(() => this.onStateChanged());
+    currState.addListener(this, () => this.onStateChanged());
+  }
+
+  destroy() {
+    super.destroy();
+    currState.removeListener(this);
   }
 
   preload() {

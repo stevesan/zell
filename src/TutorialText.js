@@ -4,7 +4,7 @@ class TutorialText extends Entity {
     super(null);
     this.scene = scene;
     this.mainScene = mainScene;
-    currState.addListener(() => this.onStateChanged());
+    currState.addListener(this, () => this.onStateChanged());
     this.mainScene.addListener(() => this.onStateChanged());
 
     let cam = this.scene.cameras.main;
@@ -40,6 +40,11 @@ class TutorialText extends Entity {
     window.__setTutorialText = (x) => this.setText(x);
   }
 
+  destroy() {
+    super.destroy();
+    currState.removeListener(this);
+  }
+
   setText(text) {
     const textObj = this.mainText.gameObject;
     textObj.text = text;
@@ -56,6 +61,7 @@ class TutorialText extends Entity {
   }
 
   onStateChanged() {
+    console.assert(!this.destroyed);
     if (!currState.builtER) {
       if (currState.numSugars == 0) {
         this.setText('Tap the sugar to eat it. Go on. You know you want to.');

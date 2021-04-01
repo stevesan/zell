@@ -203,10 +203,7 @@ class MainScene extends Phaser.Scene {
     this.cameras.main.followOffset.set(20, 0);
     if (this.mode == "cell") return;
     this.mode = "cell";
-    if (!this.cellModeState) {
-      this.cellModeState = {};
-    }
-    this.cellMode = new CellMode(this, this.scene.get('hud'), this.selectedCellEntity, this.cellModeState);
+    this.cellMode = new CellMode(this, this.scene.get('hud'), this.selectedCellEntity);
     this.callListeners();
   }
 

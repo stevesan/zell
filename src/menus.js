@@ -1,11 +1,16 @@
 class BaseMenu extends Entity {
-  constructor(scene, state, reportStateChange) {
+  constructor(scene, state) {
     super(null);
     this.scene = scene;
     this.state = state;
-    this.reportStateChange = reportStateChange;
+    this.state.addListener(this, () => this.onStateChanged());
 
     this.buttonEnts = new Map();
+  }
+
+  destroy() {
+    super.destroy();
+    this.state.removeListener(this);
   }
 
   getTitle() { return 'Some Menu'; }
@@ -39,6 +44,7 @@ class BaseMenu extends Entity {
       y += dy;
       let buttonEnt = this.buttonEnts.get(button['id']);
       if (!buttonEnt) {
+        console.log(`adding text item for button ${button['id']}`);
         const text = scene.add.text(x * W, y * H, '', textStyle);
         text.setInteractive();
         text.on('pointerdown', () => {
@@ -69,8 +75,8 @@ class BaseMenu extends Entity {
 }
 
 class GolgiMenu extends BaseMenu {
-  constructor(scene, state, reportStateChange) {
-    super(scene, state, reportStateChange);
+  constructor(scene, state) {
+    super(scene, state);
   }
 
   getTitle() { return 'Golgi Apparatus'; }
@@ -79,8 +85,8 @@ class GolgiMenu extends BaseMenu {
 }
 
 class MitoMenu extends BaseMenu {
-  constructor(scene, state, reportStateChange) {
-    super(scene, state, reportStateChange);
+  constructor(scene, state) {
+    super(scene, state);
   }
 
   getTitle() { return 'Mitochondria'; }
@@ -91,8 +97,8 @@ class MitoMenu extends BaseMenu {
 }
 
 class NucleusMenu extends BaseMenu {
-  constructor(scene, state, reportStateChange) {
-    super(scene, state, reportStateChange);
+  constructor(scene, state) {
+    super(scene, state);
   }
 
   getTitle() { return 'Nucleus'; }
@@ -105,7 +111,7 @@ class NucleusMenu extends BaseMenu {
         enabled: () => !currState.builtER,
         onClick: () => {
           currState.builtER = true;
-          this.reportStateChange();
+          currState.onChange();
         }
       }
     ];
@@ -115,8 +121,8 @@ class NucleusMenu extends BaseMenu {
 const MAX_RIBOSOMES = 5;
 
 class EndoRetMenu extends BaseMenu {
-  constructor(scene, state, reportStateChange) {
-    super(scene, state, reportStateChange);
+  constructor(scene, state) {
+    super(scene, state);
   }
 
   getTitle() { return 'Endoplasmic Reticulum (ER)'; }
@@ -131,9 +137,8 @@ class EndoRetMenu extends BaseMenu {
         enabled: () => (this.state.numRibosomes ?? 0) < MAX_RIBOSOMES && currState.numSugars > 0,
         onClick: () => {
           this.state.numRibosomes = (this.state.numRibosomes ?? 0) + 1;
-          currState.numSugars--;
-          currState.onChange();
-          this.reportStateChange();
+          this.state.numSugars--;
+          this.state.onChange();
         }
       }
     ];
@@ -144,7 +149,7 @@ class EndoRetMenu extends BaseMenu {
         enabled: () => true,
         onClick: () => {
           this.state.numCentrosomes = (this.state.numCentrosomes ?? 0) + 1;
-          this.reportStateChange();
+          this.state.onChange();
         }
       });
     }

@@ -1,18 +1,27 @@
 
 class GameState {
   constructor() {
+    this.listeners = new Map();
+
     this.numSugars = 0;
     this.builtER = false;
-    this.listeners = new Set();
+    this.activeMenuName = null;
+    this.cellMode = {};
   }
 
-  addListener(listener) {
-    this.listeners.add(listener);
+  addListener(key, listener) {
+    this.listeners.set(key, listener);
+  }
+
+  removeListener(key) {
+    this.listeners.delete(key);
   }
 
   onChange() {
-    for (const l of this.listeners) {
-      l();
+    console.log(`---- ${this.listeners.size} listeners..`);
+    for (const [key, listener] of this.listeners) {
+      console.log(key);
+      listener();
     }
   }
 }
