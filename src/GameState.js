@@ -1,9 +1,11 @@
 
+// TODO separate saved game state (like numSugars) vs. session-only (like activeMenuName)
 class GameState {
   constructor() {
     this.listeners = new Map();
 
     this.numSugars = 0;
+    this.numRibosomes = 0;
     this.builtER = false;
 
     this.activeMenuName = null;
