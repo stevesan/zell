@@ -6,6 +6,8 @@ class BaseMenu extends Entity {
     this.state.addListener(this, () => this.onStateChanged());
 
     this.buttonEnts = new Map();
+
+    this.onStateChanged();
   }
 
   destroy() {
@@ -18,7 +20,7 @@ class BaseMenu extends Entity {
   getButtons() { return []; }
 
   onStateChanged() {
-    const state = this.state;
+    console.assert(!this.destroyed);
 
     let cam = this.scene.cameras.main;
     const W = cam.displayWidth;
