@@ -28,7 +28,7 @@ class BaseMenu extends Entity {
     const H = cam.displayHeight;
     let x = 0.03;
     let y = 0.2;
-    const dy = 0.05;
+    const dy = 0.07;
     const textStyle = {
       font: "36px ProggySquare", fill: "#fff",
       stroke: "#000", strokeThickness: 0,
@@ -66,7 +66,7 @@ class BaseMenu extends Entity {
         if (!iconEnt) {
           const icon = scene.add.image(0, 0, button['icon']);
           icon.setInteractive();
-          icon.setScale(2);
+          icon.setScale(3);
           iconEnt = new Entity(icon);
           iconEnt.setParent(this);
           this.iconEnts.set(button['id'], iconEnt);
